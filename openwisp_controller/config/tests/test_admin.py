@@ -1,17 +1,21 @@
+import copy
 import json
 
 from django.test import TestCase
 from django.urls import reverse
+from django_netjsonconfig.tests import CreateTemplateSubscriptionMixin
+from mock import Mock, patch
 
 from openwisp_users.tests.utils import TestOrganizationMixin
 
 from ...pki.models import Ca, Cert
 from ...tests.utils import TestAdminMixin
-from ..models import Config, Device, Template, Vpn
+from ..models import Config, Device, Template, TemplateSubscription, Vpn
+from ..tasks import synchronize_templates
 from . import CreateConfigTemplateMixin, TestVpnX509Mixin
 
 
-class TestAdmin(CreateConfigTemplateMixin, TestAdminMixin,
+class TestAdmin(CreateConfigTemplateMixin, TestAdminMixin, CreateTemplateSubscriptionMixin,
                 TestVpnX509Mixin, TestOrganizationMixin, TestCase):
     ca_model = Ca
     cert_model = Cert
@@ -19,6 +23,7 @@ class TestAdmin(CreateConfigTemplateMixin, TestAdminMixin,
     device_model = Device
     template_model = Template
     vpn_model = Vpn
+    subscription_model = TemplateSubscription
     operator_permission_filters = [
         {'codename__endswith': 'config'},
         {'codename__endswith': 'device'},
@@ -58,7 +63,114 @@ class TestAdmin(CreateConfigTemplateMixin, TestAdminMixin,
         p['organization'] = org.pk
         return p
 
-    def test_import_api(self):
+    def test_subscription_api(self):
+        template = self._create_template()
+        data = {
+            'template': template.pk,
+            'subscriber': 'http://testsubscriber.com',
+            'is_subscription': True
+        }
+        path = reverse('api:subscribe_template')
+        response = self.client.post(path, data=data)
+        subscriber = self.subscription_model.objects.get(template=template)
+        self.assertEqual(subscriber.is_subscription, True)
+        self.assertEqual(response.status_code, 200)
+        data.update({
+            'is_subscription': False
+        })
+        response = self.client.post(path, data=data)
+        subscriber = self.subscription_model.objects.get(template=template)
+        self.assertEqual(subscriber.is_subscription, False)
+        self.assertEqual(response.status_code, 200)
+
+    @patch('requests.get')
+    @patch('requests.post')
+    def test_create_template_api(self, mocked_post, mocked_get):
+        org = self._create_org(name="testorg")
+        user = self._create_admin(username='admin1', email='admin1@xzy.com')
+        org.add_user(user)
+        self._login(username='admin1', password='tester')
+        data = {
+            'import-url': 'http://test-import-url.com',
+        }
+        import_response = Mock()
+        celery_response = Mock()
+        celery_response.status_code = 200
+        import_response.status_code = 200
+        import_response.json.return_value = copy.deepcopy(self._vpn_template_data)
+        mocked_post.return_value = celery_response
+        mocked_get.return_value = import_response
+        response = self.client.post(reverse('api:list_template'), data=data)
+        self.assertContains(response, 'success', status_code=200)
+        mocked_get.assert_called_once()
+        mocked_post.assert_called_once()
+        import_response.reset_mock(return_value=True)
+        import_response.status_code = 200
+        import_response.json.return_value = copy.deepcopy(self._vpn_template_data)
+        response = self.client.post(reverse('api:list_template'), data=data)
+        self.assertContains(response, 'errors', status_code=500)
+        import_response.reset_mock(return_value=True)
+        import_response.status_code = 200
+        import_response.json.return_value = copy.deepcopy(self._vpn_template_data)
+        self._logout()
+        import_response.reset_mock(return_value=True)
+        import_response.status_code = 200
+        import_response.json.return_value = copy.deepcopy(self._vpn_template_data)
+        response = self.client.post(reverse('api:list_template'), data=data)
+        self.assertContains(response, 'Authentication credentials were not provided', status_code=403)
+
+    @patch('requests.get')
+    @patch('requests.post')
+    def test_create_template_org_already_exist_api(self, mocked_post, mocked_get):
+        org = self._create_org(name="testorg")
+        user = self._create_admin(username='admin1', email='admin1@xzy.com')
+        org.add_user(user)
+        self._create_template(organization=org)
+        self._create_admin(username='admin2', email='admin2@admin.com')
+        self._login(username='admin2', password='tester')
+        data = {
+            'import-url': 'http://test-import-url.com',
+        }
+        import_response = Mock()
+        celery_response = Mock()
+        celery_response.status_code = 200
+        import_response.status_code = 200
+        import_response.json.return_value = copy.deepcopy(self._vpn_template_data)
+        mocked_post.return_value = celery_response
+        mocked_get.return_value = import_response
+        response = self.client.post(reverse('api:list_template'), data=data)
+        self.assertContains(response, 'errors', status_code=500)
+
+    @patch('requests.get')
+    @patch('requests.post')
+    def test_create_template_org_doesnot_exist_api(self, mocked_post, mocked_get):
+        self._create_admin(username='admin1', email='admin1@xzy.com')
+        self._login(username='admin1', password='tester')
+        data = {
+            'import-url': 'http://test-import-url.com',
+        }
+        import_response = Mock()
+        celery_response = Mock()
+        celery_response.status_code = 200
+        import_response.status_code = 200
+        import_response.json.return_value = copy.deepcopy(self._vpn_template_data)
+        mocked_post.return_value = celery_response
+        mocked_get.return_value = import_response
+        response = self.client.post(reverse('api:list_template'), data=data)
+        self.assertContains(response, 'success', status_code=200)
+        mocked_get.assert_called_once()
+        mocked_post.assert_called_once()
+
+    @patch('requests.post')
+    def test_synchronize_template(self, mocked_post):
+        self._create_subscription()
+        celery_response = Mock()
+        celery_response.status_code = 200
+        mocked_post.return_value = celery_response
+        synchronize_templates()
+        mocked_post.assert_called_once()
+
+    def test_template_detail_api(self):
         org = self._create_org()
         ca = self._create_ca(organization=org)
         cert = self._create_cert(organization=org)
@@ -81,8 +193,8 @@ class TestAdmin(CreateConfigTemplateMixin, TestAdminMixin,
         response1 = self.client.get(path1)
         response2 = self.client.get(path2)
         response3 = self.client.get(path3)
-        self.assertNotContains(response1, '{"detail":"Not found."}')
-        self.assertNotContains(response2, '{"detail":"Not found."}')
+        self.assertContains(response1, 'public')
+        self.assertContains(response2, 'secret_key')
         self.assertContains(response3, '{"detail":"Not found."}', status_code=404)
 
     def test_search_api(self):
@@ -102,10 +214,10 @@ class TestAdmin(CreateConfigTemplateMixin, TestAdminMixin,
         self.assertNotContains(response, 'test-template2')
         response = self.client.get(path, data={'org': org2.name})
         self.assertContains(response, "[]")
-        response = self.client.get(path, data={'org': 'doesnot_exist'})
-        self.assertContains(response, "[]")
         response = self.client.get(path)
-        self.assertContains(response, "[]")
+        self.assertContains(response, "test-template1")
+        response = self.client.get(path, data={'org': 'doesnot_exit'})
+        self.assertContains(response, "test-template1")
 
     def test_device_and_template_different_organization(self):
         org1 = self._create_org()

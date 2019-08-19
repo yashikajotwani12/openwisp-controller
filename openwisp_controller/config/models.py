@@ -9,16 +9,18 @@ from django_netjsonconfig import settings as app_settings
 from django_netjsonconfig.base.config import AbstractConfig, TemplatesThrough
 from django_netjsonconfig.base.config import TemplatesVpnMixin as BaseMixin
 from django_netjsonconfig.base.device import AbstractDevice
+from django_netjsonconfig.base.subscription import AbstractTemplateSubscription
 from django_netjsonconfig.base.tag import AbstractTaggedTemplate, AbstractTemplateTag
 from django_netjsonconfig.base.template import AbstractTemplate
 from django_netjsonconfig.base.vpn import AbstractVpn, AbstractVpnClient
-from django_netjsonconfig.utils import get_random_key
+from django_netjsonconfig.utils import get_random_key, get_remote_template_data
 from django_netjsonconfig.validators import key_validator, mac_address_validator
 from sortedm2m.fields import SortedManyToManyField
 from taggit.managers import TaggableManager
 
 from openwisp_users.mixins import OrgMixin, ShareableOrgMixin
 
+from ..pki.models import Ca, Cert
 from .utils import get_default_templates_queryset
 
 
@@ -146,29 +148,6 @@ class TaggedTemplate(AbstractTaggedTemplate):
         abstract = False
 
 
-class Template(ShareableOrgMixin, AbstractTemplate):
-    """
-    openwisp-controller Template model
-    """
-    tags = TaggableManager(through='config.TaggedTemplate', blank=True,
-                           help_text=_('A comma-separated list of template tags, may be used '
-                                       'to ease auto configuration with specific settings (eg: '
-                                       '4G, mesh, WDS, VPN, ecc.)'))
-    vpn = models.ForeignKey('config.Vpn',
-                            verbose_name=_('VPN'),
-                            blank=True,
-                            null=True,
-                            on_delete=models.CASCADE)
-
-    class Meta(AbstractTemplate.Meta):
-        abstract = False
-        unique_together = (('organization', 'name'), )
-
-    def clean(self):
-        self._validate_org_relation('vpn')
-        super(Template, self).clean()
-
-
 class Vpn(ShareableOrgMixin, AbstractVpn):
     """
     openwisp-controller VPN model
@@ -196,6 +175,46 @@ class Vpn(ShareableOrgMixin, AbstractVpn):
         """
         cert.organization = self.organization
         return cert
+
+
+class Template(ShareableOrgMixin, AbstractTemplate):
+    """
+    openwisp-controller Template model
+    """
+    tags = TaggableManager(through='config.TaggedTemplate', blank=True,
+                           help_text=_('A comma-separated list of template tags, may be used '
+                                       'to ease auto configuration with specific settings (eg: '
+                                       '4G, mesh, WDS, VPN, ecc.)'))
+    vpn = models.ForeignKey('config.Vpn',
+                            verbose_name=_('VPN'),
+                            blank=True,
+                            null=True,
+                            on_delete=models.CASCADE)
+
+    # Define django_x509 concret model which will be
+    # use at the abstract model.
+    vpn_model = Vpn
+    ca_model = Ca
+    cert_model = Cert
+
+    class Meta(AbstractTemplate.Meta):
+        abstract = False
+        unique_together = (('organization', 'name'), )
+
+    def clean(self):
+        self._validate_org_relation('vpn')
+        if self.sharing == 'import' or self.url:
+            if not self.url:
+                raise ValidationError({'url': 'URL is required for import of templates'})
+            else:
+                data = get_remote_template_data(self.url)
+                if data['type'] == 'vpn':
+                    data['organization'] = self.organization
+                    data['vpn']['ca']['organization'] = self.organization
+                    data['vpn']['cert']['organization'] = self.organization
+                    data['vpn']['organization'] = self.organization
+            self._set_field_values(data)
+        super(Template, self).clean()
 
 
 class VpnClient(AbstractVpnClient):
@@ -251,3 +270,15 @@ class OrganizationConfigSettings(models.Model):
 
     def __str__(self):
         return self.organization.name
+
+
+class TemplateSubscription(AbstractTemplateSubscription):
+    """
+    Concrete openwisp-controller subscription model
+    """
+    template = models.ForeignKey('config.Template',
+                                 verbose_name=_('Template'),
+                                 on_delete=models.CASCADE)
+
+    class Meta(AbstractTemplateSubscription.Meta):
+        abstract = False

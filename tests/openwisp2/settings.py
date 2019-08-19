@@ -1,8 +1,14 @@
 import os
 import sys
 
+from celery.schedules import crontab
+
 TESTING = sys.argv[1:2] == ['test']
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# To make sure celery can find the db file
+# irrespective of where it is started
+DB_DIR = os.path.abspath(os.path.join(__file__, "../../../"))
+
 
 DEBUG = True
 
@@ -11,7 +17,7 @@ ALLOWED_HOSTS = []
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.spatialite',
-        'NAME': 'openwisp-controller.db',
+        'NAME': '{0}/openwisp-controller.db'.format(DB_DIR),
     }
 }
 
@@ -24,6 +30,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.gis',
+    'corsheaders',
     # openwisp2 admin theme
     # (must be loaded here)
     'openwisp_utils.admin_theme',
@@ -65,6 +72,7 @@ STATICFILES_FINDERS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -72,6 +80,14 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+CORS_ORIGIN_WHITELIST = [
+    "http://localhost:3000"
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "localhost:3000"
 ]
 
 ROOT_URLCONF = 'openwisp2.urls'
@@ -129,6 +145,12 @@ else:
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_TASK_EAGER_PROPAGATES = True
     CELERY_BROKER_URL = 'memory://'
+CELERY_BEAT_SCHEDULE = {
+    'synchronize_templates': {
+        'task': 'openwisp_controller.config.tasks.synchronize_templates',
+        'schedule':60,
+    },
+}
 
 LOGGING = {
     'version': 1,

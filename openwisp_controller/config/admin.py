@@ -13,7 +13,7 @@ from openwisp_users.multitenancy import MultitenantOrgFilter, MultitenantRelated
 from openwisp_utils.admin import AlwaysHasChangedMixin
 
 from ..admin import MultitenantAdminMixin
-from .models import Config, Device, OrganizationConfigSettings, Template, Vpn
+from .models import Config, Device, OrganizationConfigSettings, Template, TemplateSubscription, Vpn
 
 
 class ConfigForm(AlwaysHasChangedMixin, AbstractConfigForm):
@@ -82,6 +82,13 @@ class TemplateForm(BaseForm):
 
 class TemplateAdmin(MultitenantAdminMixin, AbstractTemplateAdmin):
     form = TemplateForm
+    # Vpn model will be used to delete any Vpn and Ca
+    # which wwere associated with this Template
+    # during unsubscription.
+    # Template Subscription model is used to get number of
+    # of subscribers for list_display
+    template_subscription_model = TemplateSubscription
+    vpn_model = Vpn
     multitenant_shared_relations = ('vpn',)
 
 
