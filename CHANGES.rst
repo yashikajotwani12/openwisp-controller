@@ -4,7 +4,26 @@ Changelog
 Version 0.9.0 [unreleased]
 --------------------------
 
-WIP
+Bugfixes
+~~~~~~~~
+
+- Fixed a bug which caused ``VpnClient`` instances to be recreated every time
+  the configuration templates of a device were changed,
+  which caused x590 certificates to be destroyed and recreated as well.
+
+Changes
+~~~~~~~
+
+- **Potentially backward incompatible**:
+  Since django-sortedm2m, the widget we use to implement ordered templates,
+  clears all the many to many relationships every time it has to make changes,
+  we had to stop deleting ``VpnClient`` instances related to VPN templates
+  on ``post_clear`` m2m signals.
+  If you wrote any custom derivative which relies on calls like
+  ``device.config.templates.clear()`` to delete related ``VpnClient``
+  instances and their x509 certificates, you will have to update your code
+  to remove all the templates using their primary keys,
+  instead of using ``clear()``
 
 Version 0.8.3 [2020-12-18]
 --------------------------
