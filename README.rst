@@ -802,6 +802,132 @@ List locations with devices deployed (in GeoJSON format)
 
     GET api/v1/controller/location/geojson/
 
+List devices with location
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    GET api/v1/geo/devicelocation/
+
+Add location to device
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    POST api/v1/geo/devicelocation/
+
+Get devices with location detail
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    GET api/v1/geo/devicelocation/{id}/
+
+Change device location detail
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    PUT api/v1/geo/devicelocation/{id}/
+
+Patch device location detail
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    PATCH api/v1/geo/devicelocation/{id}/
+
+Delete device location
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    DELETE api/v1/geo/devicelocation/{id}/
+
+List floorplan
+^^^^^^^^^^^^^^
+
+.. code:: text
+
+    GET api/v1/geo/floorplan/
+
+Create floorplan
+^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    POST api/v1/geo/floorplan/
+
+Get floorplan detail
+^^^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    GET api/v1/geo/floorplan/{pk}/
+
+Change floorplan detail
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    PUT api/v1/geo/floorplan/{pk}/
+
+Patch details of floorplan
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    PATCH api/v1/geo/floorplan/{pk}/
+
+Delete floorplan
+^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    DELETE api/v1/geo/floorplan/{pk}/
+
+List locations
+^^^^^^^^^^^^^^
+
+.. code:: text
+
+    GET api/v1/geo/location/
+
+Create locations
+^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    POST api/v1/geo/location/
+
+Get location detail
+^^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    GET api/v1/geo/location/{pk}/
+
+Change location detail
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    PUT api/v1/geo/location/{pk}/
+
+Patch details of location
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    PATCH api/v1/geo/location/{pk}/
+
+Delete location
+^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    DELETE api/v1/geo/location/{pk}/
+
 List templates
 ^^^^^^^^^^^^^^
 
