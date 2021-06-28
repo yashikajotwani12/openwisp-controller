@@ -161,6 +161,11 @@ in order perform `push operations <#how-to-configure-push-updates>`__:
 - `Executing shell commands <#sending-commands-to-devices>`_.
 - Perform `firmware upgrades via the additional firmware upgrade module <https://github.com/openwisp/openwisp-firmware-upgrader>`_.
 
+Access via SSH key is recommended, the SSH key algorithms supported are:
+
+- RSA
+- Ed25519
+
 Geo App
 ~~~~~~~
 
