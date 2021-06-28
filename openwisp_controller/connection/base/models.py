@@ -1,5 +1,6 @@
 import collections
 import logging
+import operator
 
 import jsonschema
 from django.core.exceptions import ValidationError
@@ -44,7 +45,7 @@ class ConnectorMixin(object):
         self._validate_connector_schema()
 
     def _get_connector(self):
-        return getattr(self, self._connector_field)
+        return operator.attrgetter(self._connector_field)(self)
 
     def _validate_connector_schema(self):
         try:
@@ -129,6 +130,7 @@ class AbstractCredentials(ConnectorMixin, ShareableOrgMixinUniqueName, BaseModel
         for device in devices:
             DeviceConnection = load_model('connection', 'DeviceConnection')
             conn = DeviceConnection(device=device, credentials=self, enabled=True)
+            conn._connector_field = 'credentials.connector'
             conn.full_clean()
             conn.save()
 
@@ -157,6 +159,7 @@ class AbstractCredentials(ConnectorMixin, ShareableOrgMixinUniqueName, BaseModel
         for cred in credentials:
             DeviceConnection = load_model('connection', 'DeviceConnection')
             conn = DeviceConnection(device=device, credentials=cred, enabled=True)
+            conn.set_connector(cred.connector_instance)
             conn.full_clean()
             conn.save()
 

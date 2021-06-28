@@ -398,7 +398,7 @@ class DeviceAdmin(MultitenantAdminMixin, BaseConfigAdmin, UUIDAdmin):
         'created',
     ]
     search_fields = ['id', 'name', 'mac_address', 'key', 'model', 'os', 'system']
-    readonly_fields = ['last_ip', 'management_ip', 'uuid']
+    readonly_fields = ['last_ip', 'uuid']
     fields = [
         'name',
         'organization',
