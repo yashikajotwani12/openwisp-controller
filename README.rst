@@ -802,131 +802,89 @@ List locations with devices deployed (in GeoJSON format)
 
     GET /api/v1/controller/location/geojson/
 
-List devices with location
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: text
-
-    GET /api/v1/geo/devicelocation/
-
-Add location to device
-^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: text
-
-    POST /api/v1/geo/devicelocation/
-
-Get devices with location detail
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: text
-
-    GET /api/v1/geo/devicelocation/{id}/
-
-Change device location detail
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: text
-
-    PUT /api/v1/geo/devicelocation/{id}/
-
-Patch device location detail
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: text
-
-    PATCH /api/v1/geo/devicelocation/{id}/
-
-Delete device location
-^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: text
-
-    DELETE /api/v1/geo/devicelocation/{id}/
-
 List floorplan
 ^^^^^^^^^^^^^^
 
 .. code:: text
 
-    GET /api/v1/geo/floorplan/
+    GET /api/v1/controller/floorplan/
 
 Create floorplan
 ^^^^^^^^^^^^^^^^
 
 .. code:: text
 
-    POST /api/v1/geo/floorplan/
+    POST /api/v1/controller/floorplan/
 
 Get floorplan detail
 ^^^^^^^^^^^^^^^^^^^^
 
 .. code:: text
 
-    GET /api/v1/geo/floorplan/{pk}/
+    GET /api/v1/controller/floorplan/{pk}/
 
 Change floorplan detail
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: text
 
-    PUT /api/v1/geo/floorplan/{pk}/
+    PUT /api/v1/controller/floorplan/{pk}/
 
 Patch details of floorplan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: text
 
-    PATCH /api/v1/geo/floorplan/{pk}/
+    PATCH /api/v1/controller/floorplan/{pk}/
 
 Delete floorplan
 ^^^^^^^^^^^^^^^^
 
 .. code:: text
 
-    DELETE /api/v1/geo/floorplan/{pk}/
+    DELETE /api/v1/controller/floorplan/{pk}/
 
 List locations
 ^^^^^^^^^^^^^^
 
 .. code:: text
 
-    GET /api/v1/geo/location/
+    GET /api/v1/controller/location/
 
 Create locations
 ^^^^^^^^^^^^^^^^
 
 .. code:: text
 
-    POST /api/v1/geo/location/
+    POST /api/v1/controller/location/
 
 Get location detail
 ^^^^^^^^^^^^^^^^^^^
 
 .. code:: text
 
-    GET /api/v1/geo/location/{pk}/
+    GET /api/v1/controller/location/{pk}/
 
 Change location detail
 ^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: text
 
-    PUT /api/v1/geo/location/{pk}/
+    PUT /api/v1/controller/location/{pk}/
 
 Patch details of location
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: text
 
-    PATCH /api/v1/geo/location/{pk}/
+    PATCH /api/v1/controller/location/{pk}/
 
 Delete location
 ^^^^^^^^^^^^^^^
 
 .. code:: text
 
-    DELETE /api/v1/geo/location/{pk}/
+    DELETE /api/v1/controller/location/{pk}/
 
 List templates
 ^^^^^^^^^^^^^^
