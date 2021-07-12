@@ -12,14 +12,6 @@ DeviceLocation = load_model('geo', 'DeviceLocation')
 FloorPlan = load_model('geo', 'FloorPlan')
 
 
-class LocationSerializer(gis_serializers.GeoFeatureModelSerializer):
-    class Meta:
-        model = Location
-        geo_field = 'geometry'
-        fields = ('name', 'geometry')
-        read_only_fields = ('name',)
-
-
 class LocationDeviceSerializer(ValidatedModelSerializer):
     admin_edit_url = SerializerMethodField('get_admin_edit_url')
 
@@ -82,3 +74,33 @@ class LocationModelSerializer(BaseSerializer):
             'modified',
         )
         read_only_fields = ('created', 'modified')
+
+
+class DeviceLocationNestedSerializer(BaseSerializer):
+    class Meta:
+        model = Location
+        fields = (
+            'name',
+            'type',
+            'is_mobile',
+            'address',
+            'geometry',
+        )
+
+    def validate(self, data):
+        data['organization'] = self.context.get('device_org')
+        instance = self.instance or self.Meta.model(**data)
+        instance.full_clean()
+        return data
+
+
+class LocationSerializer(BaseSerializer):
+    location = DeviceLocationNestedSerializer()
+
+    class Meta:
+        model = DeviceLocation
+        fields = ('location',)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['location'].context.update(self.context)

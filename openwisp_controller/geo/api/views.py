@@ -43,28 +43,27 @@ class ProtectedAPIMixin(FilterByOrganizationManaged):
     ]
 
 
-class DeviceLocationView(generics.RetrieveUpdateAPIView):
+class DeviceLocationView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = LocationSerializer
-    permission_classes = (DevicePermission,)
+    # permission_classes = (DevicePermission,)
     queryset = Device.objects.select_related(
         'devicelocation', 'devicelocation__location'
     )
 
-    def get_location(self, device):
+    def get_devicelocation(self, device):
         try:
-            return device.devicelocation.location
+            return device.devicelocation
         except ObjectDoesNotExist:
             return None
 
     def get_object(self, *args, **kwargs):
         device = super().get_object()
-        location = self.get_location(device)
-        if location:
-            return location
-        # if no location present, automatically create it
-        return self.create_location(device)
+        devicelocation = self.get_devicelocation(device)
+        if devicelocation:
+            return devicelocation
+        return self.create_devicelocation(device)
 
-    def create_location(self, device):
+    def create_devicelocation(self, device):
         location = Location(
             name=device.name,
             type='outdoor',
@@ -73,10 +72,15 @@ class DeviceLocationView(generics.RetrieveUpdateAPIView):
         )
         location.full_clean()
         location.save()
-        dl = DeviceLocation(content_object=device, location=location)
-        dl.full_clean()
-        dl.save()
-        return location
+        devicelocation = DeviceLocation(content_object=device, location=location)
+        devicelocation.full_clean()
+        devicelocation.save()
+        return devicelocation
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['device_org'] = Device.objects.get(pk=self.kwargs['pk']).organization
+        return context
 
 
 class GeoJsonLocationListPagination(GeoJsonPagination):
