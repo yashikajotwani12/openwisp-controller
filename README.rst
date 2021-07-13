@@ -788,6 +788,13 @@ Update device coordinates
 
     PUT /api/v1/controller/device/{id}/location/
 
+Delete device location
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    DELETE /api/v1/controller/device/{id}/location/
+
 List of devices in a location
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
