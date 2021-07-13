@@ -23,7 +23,7 @@ DeviceLocation = load_model('geo', 'DeviceLocation')
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 
 
-class TestApi(TestGeoMixin, TestCase):
+class TestApi(AssertNumQueriesSubTestMixin, TestGeoMixin, TestCase):
     url_name = 'geo_api:device_location'
     object_location_model = DeviceLocation
     location_model = Location
@@ -94,6 +94,18 @@ class TestApi(TestGeoMixin, TestCase):
             },
         )
         self.assertEqual(self.location_model.objects.count(), 1)
+
+    def test_delete_device_location(self):
+        self.assertEqual(self.location_model.objects.count(), 0)
+        dl = self._create_object_location()
+        url = reverse(self.url_name, args=[dl.device.pk])
+        self.assertEqual(self.location_model.objects.count(), 1)
+        self.assertEqual(self.object_location_model.objects.count(), 1)
+        url = '{0}?key={1}'.format(url, dl.device.key)
+        with self.assertNumQueries(4):
+            r = self.client.delete(url)
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(self.object_location_model.objects.count(), 0)
 
 
 class TestMultitenantApi(
