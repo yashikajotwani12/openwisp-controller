@@ -129,6 +129,15 @@ TEMPLATES = [
     }
 ]
 
+if not TESTING:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': 'redis://localhost/5',
+            'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient',},
+        }
+    }
+
 FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'
 
 EMAIL_PORT = '1025'  # for testing purposes
@@ -216,6 +225,7 @@ if os.environ.get('SAMPLE_APP', False):
     OPENWISP_USERS_ORGANIZATIONUSER_MODEL = 'sample_users.OrganizationUser'
     OPENWISP_USERS_ORGANIZATIONOWNER_MODEL = 'sample_users.OrganizationOwner'
     CONFIG_DEVICE_MODEL = 'sample_config.Device'
+    CONFIG_DEVICEGROUP_MODEL = 'sample_config.DeviceGroup'
     CONFIG_CONFIG_MODEL = 'sample_config.Config'
     CONFIG_TEMPLATETAG_MODEL = 'sample_config.TemplateTag'
     CONFIG_TAGGEDTEMPLATE_MODEL = 'sample_config.TaggedTemplate'

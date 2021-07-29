@@ -134,6 +134,7 @@ Config App
 * **configuration templates**: reduce repetition to the minimum
 * `configuration variables <#how-to-use-configuration-variables>`_: reference ansible-like variables in the configuration and templates
 * **template tags**: tag templates to automate different types of auto-configurations (eg: mesh, WDS, 4G)
+* **device groups**: add `devices to dedicated groups <#device-groups>`_ for easy management
 * **simple HTTP resources**: allow devices to automatically download configuration updates
 * **VPN management**: automatically provision VPN tunnels with unique x509 certificates
 
@@ -156,6 +157,11 @@ in order perform `push operations <#how-to-configure-push-updates>`__:
 
 The default connection protocol implemented is SSH, but other protocol
 mechanism is extensible and custom protocols can be implemented as well.
+
+Access via SSH key is recommended, the SSH key algorithms supported are:
+
+- RSA
+- Ed25519
 
 Geo App
 ~~~~~~~
@@ -620,7 +626,18 @@ Allows to specify backend URL for API requests, if the frontend is hosted separa
 +--------------+----------+
 
 Allows to specify a `list` of tuples for adding commands as described in
-`'How to add commands"   <#how-to-add-commands>`_ section.
+`'How to add commands" <#how-to-add-commands>`_ section.
+
+``OPENWISP_CONTROLLER_DEVICE_GROUP_SCHEMA``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++--------------+------------------------------------------+
+| **type**:    | ``dict``                                 |
++--------------+------------------------------------------+
+| **default**: | ``{'type': 'object', 'properties': {}}`` |
++--------------+------------------------------------------+
+
+Allows specifying JSONSchema used for validating meta-data of `Device Group <#device-groups>`_.
 
 REST API
 --------
@@ -752,6 +769,90 @@ Delete device
 .. code-block:: text
 
     DELETE /api/v1/controller/device/{id}/
+
+List device connections
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/controller/device/{id}/connection/
+
+Create device connection
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/controller/device/{id}/connection/
+
+Get device connection detail
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/controller/device/{id}/connection/{id}/
+
+Change device connection detail
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/controller/device/{id}/connection/{id}/
+
+Patch device connection detail
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/controller/device/{id}/connection/{id}/
+
+Delete device connection
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    DELETE /api/v1/controller/device/{id}/connection/{id}/
+
+List credentials
+^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/connection/credential/
+
+Create credential
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/connection/credential/
+
+Get credential detail
+^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/connection/credential/{id}/
+
+Change credential detail
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/connection/credential/{id}/
+
+Patch credential detail
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/connection/credential/{id}/
+
+Delete credential
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    DELETE /api/v1/connection/credential/{id}/
 
 List commands of a device
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -893,6 +994,45 @@ Delete location
 
     DELETE /api/v1/controller/location/{pk}/
 
+List device groups
+^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    GET api/v1/controller/group/
+
+Create device group
+^^^^^^^^^^^^^^^^^^^
+
+.. code:: text
+
+    POST api/v1/controller/group/
+
+Get device group detail
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/controller/group/{id}/
+
+Get device group from certificate common name
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/controller/cert/{common_name}/group/
+
+This endpoint can be used to retrieve group information and metadata by the
+common name of a certificate used in a VPN client tunnel, this endpoint is
+used in layer 2 tunneling solutions for firewall/captive portals.
+
+It is also possible to filter device group by providing organization slug
+of certificate's organization as show in the example below:
+
+.. code-block:: text
+
+    GET /api/v1/controller/cert/{common_name}/group/?org={org1_slug},{org2_slug}
+
 List templates
 ^^^^^^^^^^^^^^
 
@@ -921,7 +1061,8 @@ Download template configuration
 
     GET /api/v1/controller/template/{id}/configuration/
 
-The above endpoint triggers the download of a ``tar.gz`` file containing the generated configuration for that specific template.
+The above endpoint triggers the download of a ``tar.gz`` file
+containing the generated configuration for that specific template.
 
 Change details of template
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -972,7 +1113,8 @@ Download VPN configuration
 
     GET /api/v1/controller/vpn/{id}/configuration/
 
-The above endpoint triggers the download of a ``tar.gz`` file containing the generated configuration for that specific VPN.
+The above endpoint triggers the download of a ``tar.gz`` file
+containing the generated configuration for that specific VPN.
 
 Change details of VPN
 ^^^^^^^^^^^^^^^^^^^^^
@@ -994,6 +1136,143 @@ Delete VPN
 .. code-block:: text
 
     DELETE /api/v1/controller/vpn/{id}/
+
+List CA
+^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/controller/ca/
+
+Create new CA
+^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/controller/ca/
+
+Import existing CA
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/controller/ca/
+
+**Note**: To import an existing CA, only ``name``, ``certificate``
+and ``private_key`` fields have to be filled in the ``HTML`` form or
+included in the ``JSON`` format.
+
+Get CA Detail
+^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/controller/ca/{id}/
+
+Change details of CA
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/controller/ca/{id}/
+
+Patch details of CA
+^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/controller/ca/{id}/
+
+Download CA(crl)
+^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/controller/ca/{id}/crl/
+
+The above endpoint triggers the download of ``{id}.crl`` file containing 
+up to date CRL of that specific CA.
+
+Delete CA
+^^^^^^^^^
+
+.. code-block:: text
+
+    DELETE /api/v1/controller/ca/{id}/
+
+Renew CA
+^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/controller/ca/{id}/renew/
+
+List Cert
+^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/controller/cert/
+
+Create new Cert
+^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/controller/cert/
+
+Import existing Cert
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/controller/cert/
+
+**Note**: To import an existing Cert, only ``name``, ``ca``,
+``certificate`` and ``private_key`` fields have to be filled
+in the ``HTML`` form or included in the ``JSON`` format.
+
+Get Cert Detail
+^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/controller/cert/{id}/
+
+Change details of Cert
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/controller/cert/{id}/
+
+Patch details of Cert
+^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/controller/cert/{id}/
+
+Delete Cert
+^^^^^^^^^^^
+
+.. code-block:: text
+
+    DELETE /api/v1/controller/cert/{id}/
+
+Renew Cert
+^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/controller/cert/{id}/renew/
+
+Revoke Cert
+^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/controller/cert/{id}/revoke/
 
 Default Alerts / Notifications
 ------------------------------
@@ -1135,6 +1414,21 @@ Having Issues with other geospatial libraries?
 Please refer
 `troubleshooting issues related to geospatial libraries
 <https://docs.djangoproject.com/en/2.1/ref/contrib/gis/install/#library-environment-settings/>`_.
+
+Device Groups
+-------------
+
+Device Groups provide an easy way to organize devices of a particular organization.
+You can achieve following by using Device Groups:
+
+- Group similar devices by having dedicated groups for access points, routers, etc.
+- Store additional information regarding a group in the structured metadata field.
+- Customize structure and validation of metadata field of DeviceGroup to standardize
+  information across all groups using `"OPENWISP_CONTROLLER_DEVICE_GROUP_SCHEMA" <#openwisp-controller-device-group-schema>`_
+  setting.
+
+.. image:: https://raw.githubusercontent.com/openwisp/openwisp-controller/master/docs/device-groups.png
+  :alt: Device Group example
 
 How to use configuration variables
 ----------------------------------
@@ -1718,6 +2012,21 @@ The signal is emitted when the device name changes.
 
 It is not emitted when the device is created.
 
+``device_group_changed``
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Path**: ``openwisp_controller.config.signals.device_group_changed``
+
+**Arguments**:
+
+- ``instance``: instance of ``Device``.
+- ``group_id``: primary key of ``DeviceGroup`` of ``Device``
+- ``old_group_id``: primary key of previous ``DeviceGroup`` of ``Device``
+
+The signal is emitted when the device group changes.
+
+It is not emitted when the device is created.
+
 Setup (integrate in an existing django project)
 -----------------------------------------------
 
@@ -2099,6 +2408,7 @@ Once you have created the models, add the following to your ``settings.py``:
 
     # Setting models for swapper module
     CONFIG_DEVICE_MODEL = 'sample_config.Device'
+    CONFIG_DEVICEGROUP_MODEL = 'sample_config.DeviceGroup'
     CONFIG_CONFIG_MODEL = 'sample_config.Config'
     CONFIG_TEMPLATETAG_MODEL = 'sample_config.TemplateTag'
     CONFIG_TAGGEDTEMPLATE_MODEL = 'sample_config.TaggedTemplate'
@@ -2168,7 +2478,12 @@ sample_config
 
 .. code-block:: python
 
-    from openwisp_controller.config.admin import DeviceAdmin, TemplateAdmin, VpnAdmin
+    from openwisp_controller.config.admin import (
+        DeviceAdmin,
+        DeviceGroupAdmin,
+        TemplateAdmin,
+        VpnAdmin,
+    )
 
     # DeviceAdmin.fields += ['example'] <-- monkey patching example
 
@@ -2215,14 +2530,17 @@ sample_config
         DeviceAdmin as BaseDeviceAdmin,
         TemplateAdmin as BaseTemplateAdmin,
         VpnAdmin as BaseVpnAdmin,
+        DeviceGroupAdmin as BaseDeviceGroupAdmin,
     from swapper import load_model
 
     Vpn = load_model('openwisp_controller', 'Vpn')
     Device = load_model('openwisp_controller', 'Device')
+    DeviceGroup = load_model('openwisp_controller', 'DeviceGroup')
     Template = load_model('openwisp_controller', 'Template')
 
     admin.site.unregister(Vpn)
     admin.site.unregister(Device)
+    admin.site.unregister(DeviceGroup)
     admin.site.unregister(Template)
 
     @admin.register(Vpn)
@@ -2231,6 +2549,10 @@ sample_config
 
     @admin.register(Device)
     class DeviceAdmin(BaseDeviceAdmin):
+        # add your changes here
+
+    @admin.register(DeviceGroup)
+    class DeviceGroupAdmin(BaseDeviceGroupAdmin):
         # add your changes here
 
     @admin.register(Template)
