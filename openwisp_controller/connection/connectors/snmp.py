@@ -1,7 +1,5 @@
 import logging
-from io import StringIO
 
-import paramiko
 from django.utils.functional import cached_property
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError as SchemaError
@@ -44,13 +42,12 @@ class Snmp(object):
 
     @classmethod
     def custom_validation(cls, params):
-        if 'community' not in params or 'agent' not in params:
-            raise SchemaError('Missing password or key')
+        if 'community' not in params:
+            raise SchemaError('Missing community')
+        if 'agent' not in params:
+            raise SchemaError('Missing agent')
 
     @cached_property
     def params(self):
         params = self._params.copy()
-        if 'key' in params:
-            key_fileobj = StringIO(params.pop('key'))
-            params['pkey'] = paramiko.RSAKey.from_private_key(key_fileobj)
         return params
