@@ -82,3 +82,18 @@ class LocationModelSerializer(BaseSerializer):
             'modified',
         )
         read_only_fields = ('created', 'modified')
+
+
+class DeviceLocationSerializer(BaseSerializer):
+    class Meta:
+        model = DeviceLocation
+        fields = (
+            'id',
+            'indoor',
+            'content_object',
+            'location',
+            'floorplan',
+            'created',
+            'modified',
+        )
+        read_only_fields = ('created', 'modified')

@@ -12,6 +12,7 @@ from openwisp_users.api.mixins import FilterByOrganizationManaged, FilterByParen
 from openwisp_users.api.permissions import DjangoModelPermissions
 
 from .serializers import (
+    DeviceLocationSerializer,
     FloorPlanSerializer,
     GeoJsonLocationSerializer,
     LocationDeviceSerializer,
@@ -141,6 +142,21 @@ class LocationDetailView(
     queryset = Location.objects.all()
 
 
+class DeviceLocationListCreateView(ProtectedAPIMixin, generics.ListCreateAPIView):
+    serializer_class = DeviceLocationSerializer
+    queryset = DeviceLocation.objects.order_by('-created')
+    organization_field = 'location__organization'
+    pagination_class = ListViewPagination
+
+
+class DeviceLocationDetailView(
+    ProtectedAPIMixin, generics.RetrieveUpdateDestroyAPIView,
+):
+    serializer_class = DeviceLocationSerializer
+    queryset = DeviceLocation.objects.all()
+    organization_field = 'location__organization'
+
+
 device_location = DeviceLocationView.as_view()
 geojson = GeoJsonLocationList.as_view()
 location_device_list = LocationDeviceList.as_view()
@@ -148,3 +164,5 @@ list_floorplan = FloorPlanListCreateView.as_view()
 detail_floorplan = FloorPlanDetailView.as_view()
 list_location = LocationListCreateView.as_view()
 detail_location = LocationDetailView.as_view()
+device_location_list = DeviceLocationListCreateView.as_view()
+device_location_detail = DeviceLocationDetailView.as_view()
