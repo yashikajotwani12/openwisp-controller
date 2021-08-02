@@ -42,10 +42,8 @@ class Snmp(object):
 
     @classmethod
     def custom_validation(cls, params):
-        if 'community' not in params:
-            raise SchemaError('Missing community')
-        if 'agent' not in params:
-            raise SchemaError('Missing agent')
+        if 'community' not in params or 'agent' not in params:
+            raise SchemaError('Missing community or agent')
 
     @cached_property
     def params(self):

@@ -410,7 +410,7 @@ class DeviceAdmin(MultitenantAdminMixin, BaseConfigAdmin, UUIDAdmin):
         'system',
         'devicelocation__location__address',
     ]
-    readonly_fields = ['last_ip', 'management_ip', 'uuid']
+    readonly_fields = ['last_ip', 'uuid']
     autocomplete_fields = ['group']
     fields = [
         'name',
@@ -421,6 +421,7 @@ class DeviceAdmin(MultitenantAdminMixin, BaseConfigAdmin, UUIDAdmin):
         'group',
         'last_ip',
         'management_ip',
+        'use_custom_ip',
         'model',
         'os',
         'system',
@@ -447,6 +448,14 @@ class DeviceAdmin(MultitenantAdminMixin, BaseConfigAdmin, UUIDAdmin):
             f'{prefix}js/tabs.js',
             f'{prefix}js/relevant_templates.js',
         ]
+
+    def get_readonly_fields(self, request, obj=None):
+        res = set(self.readonly_fields)
+        if obj is None:
+            return res
+        if not obj.use_custom_ip:
+            res.add('management_ip')
+        return res
 
     def get_fields(self, request, obj=None):
         """
