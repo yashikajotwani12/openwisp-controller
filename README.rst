@@ -875,22 +875,36 @@ Get command details
 
     GET /api/v1/controller/device/{device_id}/command/{command_id}/
 
-Get device coordinates
-^^^^^^^^^^^^^^^^^^^^^^
+Get device location
+^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
     GET /api/v1/controller/device/{id}/location/
 
-Update device coordinates
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Update device location
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
     PUT /api/v1/controller/device/{id}/location/
 
+Patch details of device location
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/controller/device/{id}/location/
+
+Patch details of device floorplan
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/controller/device/{id}/location/
+
 Delete device location
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
@@ -909,48 +923,6 @@ List locations with devices deployed (in GeoJSON format)
 .. code:: text
 
     GET /api/v1/controller/location/geojson/
-
-List devices with location
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: text
-
-    GET /api/v1/controller/devicelocation/
-
-Add location to device
-^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: text
-
-    POST /api/v1/controller/devicelocation/
-
-Get devices with location detail
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: text
-
-    GET /api/v1/controller/devicelocation/{id}/
-
-Change device location detail
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: text
-
-    PUT /api/v1/controller/devicelocation/{id}/
-
-Patch device location detail
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: text
-
-    PATCH /api/v1/controller/devicelocation/{id}/
-
-Delete device location
-^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: text
-
-    DELETE /api/v1/controller/devicelocation/{id}/
 
 List floorplan
 ^^^^^^^^^^^^^^

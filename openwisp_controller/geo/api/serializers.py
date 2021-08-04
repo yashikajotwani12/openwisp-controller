@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework import serializers
 from rest_framework.serializers import IntegerField, SerializerMethodField
 from rest_framework_gis import serializers as gis_serializers
 from swapper import load_model
@@ -10,14 +11,6 @@ Device = load_model('config', 'Device')
 Location = load_model('geo', 'Location')
 DeviceLocation = load_model('geo', 'DeviceLocation')
 FloorPlan = load_model('geo', 'FloorPlan')
-
-
-class LocationSerializer(gis_serializers.GeoFeatureModelSerializer):
-    class Meta:
-        model = Location
-        geo_field = 'geometry'
-        fields = ('name', 'geometry')
-        read_only_fields = ('name',)
 
 
 class LocationDeviceSerializer(ValidatedModelSerializer):
@@ -84,16 +77,76 @@ class LocationModelSerializer(BaseSerializer):
         read_only_fields = ('created', 'modified')
 
 
-class DeviceLocationSerializer(BaseSerializer):
+class NestedtLocationSerializer(gis_serializers.GeoFeatureModelSerializer):
+    class Meta:
+        model = Location
+        geo_field = 'geometry'
+        fields = (
+            'type',
+            'is_mobile',
+            'name',
+            'address',
+            'geometry',
+        )
+
+
+class NestedFloorplanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FloorPlan
+        fields = (
+            'floor',
+            'image',
+        )
+
+
+class DeviceLocationSerializer(serializers.ModelSerializer):
+    location = NestedtLocationSerializer()
+    floorplan = NestedFloorplanSerializer()
+
     class Meta:
         model = DeviceLocation
         fields = (
-            'id',
-            'indoor',
-            'content_object',
             'location',
             'floorplan',
-            'created',
-            'modified',
+            'indoor',
         )
-        read_only_fields = ('created', 'modified')
+
+    def update(self, instance, validated_data):
+        if 'location' in validated_data:
+            location_data = validated_data.pop('location')
+            location = instance.location
+            if location.type == 'indoor' and location_data.get('type') == 'outdoor':
+                instance.floorplan = None
+                validated_data['indoor'] = ""
+                location.type = location_data.get('type', location.type)
+            location.is_mobile = location_data.get('is_mobile', location.is_mobile)
+            location.name = location_data.get('name', location.name)
+            location.address = location_data.get('address', location.address)
+            location.geometry = location_data.get('geometry', location.geometry)
+            location.save()
+
+        if 'floorplan' in validated_data:
+            floorplan_data = validated_data.pop('floorplan')
+            if instance.location.type == 'indoor':
+                if instance.floorplan:
+                    floorplan = instance.floorplan
+                    floorplan.floor = floorplan_data.get('floor', floorplan.floor)
+                    floorplan.image = floorplan_data.get('image', floorplan.image)
+                    floorplan.full_clean()
+                    floorplan.save()
+            if (
+                instance.location.type == 'outdoor'
+                and location_data['type'] == 'indoor'
+            ):
+                fl = FloorPlan.objects.create(
+                    floor=floorplan_data['floor'],
+                    organization=instance.content_object.organization,
+                    image=floorplan_data['image'],
+                    location=instance.location,
+                )
+                instance.location.type = 'indoor'
+                instance.location.full_clean()
+                instance.location.save()
+                instance.floorplan = fl
+
+        return super().update(instance, validated_data)

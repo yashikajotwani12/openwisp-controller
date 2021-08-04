@@ -36,14 +36,4 @@ def get_geo_urls(geo_views):
             geo_views.detail_location,
             name='detail_location',
         ),
-        path(
-            'api/v1/controller/devicelocation/',
-            geo_views.device_location_list,
-            name='device_location_list',
-        ),
-        path(
-            'api/v1/controller/devicelocation/<str:pk>/',
-            geo_views.device_location_detail,
-            name='device_location_detail',
-        ),
     ]

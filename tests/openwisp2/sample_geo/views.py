@@ -1,10 +1,4 @@
 from openwisp_controller.geo.api.views import (
-    DeviceLocationDetailView as BaseDeviceLocationDetailView,
-)
-from openwisp_controller.geo.api.views import (
-    DeviceLocationListCreateView as BaseDeviceLocationListCreateView,
-)
-from openwisp_controller.geo.api.views import (
     DeviceLocationView as BaseDeviceLocationView,
 )
 from openwisp_controller.geo.api.views import (
@@ -55,14 +49,6 @@ class LocationDetailView(BaseLocationDetailView):
     pass
 
 
-class DeviceLocationListCreateView(BaseDeviceLocationListCreateView):
-    pass
-
-
-class DeviceLocationDetailView(BaseDeviceLocationDetailView):
-    pass
-
-
 device_location = DeviceLocationView.as_view()
 geojson = GeoJsonLocationList.as_view()
 location_device_list = LocationDeviceList.as_view()
@@ -70,5 +56,3 @@ list_floorplan = FloorPlanListCreateView.as_view()
 detail_floorplan = FloorPlanDetailView.as_view()
 list_location = LocationListCreateView.as_view()
 detail_location = LocationDetailView.as_view()
-device_location_list = DeviceLocationListCreateView.as_view()
-device_location_detail = DeviceLocationDetailView.as_view()

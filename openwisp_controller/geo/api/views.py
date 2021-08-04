@@ -1,9 +1,8 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count
-from rest_framework import generics, pagination, status
+from rest_framework import generics, pagination
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import BasePermission, IsAuthenticated
-from rest_framework.response import Response
 from rest_framework_gis.pagination import GeoJsonPagination
 from swapper import load_model
 
@@ -17,7 +16,6 @@ from .serializers import (
     GeoJsonLocationSerializer,
     LocationDeviceSerializer,
     LocationModelSerializer,
-    LocationSerializer,
 )
 
 Device = load_model('config', 'Device')
@@ -46,30 +44,26 @@ class ProtectedAPIMixin(FilterByOrganizationManaged):
 
 
 class DeviceLocationView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = LocationSerializer
+    serializer_class = DeviceLocationSerializer
     permission_classes = (DevicePermission,)
     queryset = Device.objects.select_related(
         'devicelocation', 'devicelocation__location'
     )
 
-    def get_devicelocation(self):
-        return super().get_object().devicelocation
-
-    def get_location(self, device):
+    def get_devicelocation(self, device):
         try:
-            return device.devicelocation.location
+            return device.devicelocation
         except ObjectDoesNotExist:
             return None
 
     def get_object(self, *args, **kwargs):
         device = super().get_object()
-        location = self.get_location(device)
-        if location:
-            return location
-        # if no location present, automatically create it
-        return self.create_location(device)
+        devicelocation = self.get_devicelocation(device)
+        if devicelocation:
+            return devicelocation
+        return self.create_devicelocation(device)
 
-    def create_location(self, device):
+    def create_devicelocation(self, device):
         location = Location(
             name=device.name,
             type='outdoor',
@@ -78,15 +72,10 @@ class DeviceLocationView(generics.RetrieveUpdateDestroyAPIView):
         )
         location.full_clean()
         location.save()
-        dl = DeviceLocation(content_object=device, location=location)
+        dl = DeviceLocation(content_object=device, location=location, indoor="")
         dl.full_clean()
         dl.save()
-        return location
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_devicelocation()
-        self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return dl
 
 
 class GeoJsonLocationListPagination(GeoJsonPagination):
@@ -142,21 +131,6 @@ class LocationDetailView(
     queryset = Location.objects.all()
 
 
-class DeviceLocationListCreateView(ProtectedAPIMixin, generics.ListCreateAPIView):
-    serializer_class = DeviceLocationSerializer
-    queryset = DeviceLocation.objects.order_by('-created')
-    organization_field = 'location__organization'
-    pagination_class = ListViewPagination
-
-
-class DeviceLocationDetailView(
-    ProtectedAPIMixin, generics.RetrieveUpdateDestroyAPIView,
-):
-    serializer_class = DeviceLocationSerializer
-    queryset = DeviceLocation.objects.all()
-    organization_field = 'location__organization'
-
-
 device_location = DeviceLocationView.as_view()
 geojson = GeoJsonLocationList.as_view()
 location_device_list = LocationDeviceList.as_view()
@@ -164,5 +138,3 @@ list_floorplan = FloorPlanListCreateView.as_view()
 detail_floorplan = FloorPlanDetailView.as_view()
 list_location = LocationListCreateView.as_view()
 detail_location = LocationDetailView.as_view()
-device_location_list = DeviceLocationListCreateView.as_view()
-device_location_detail = DeviceLocationDetailView.as_view()

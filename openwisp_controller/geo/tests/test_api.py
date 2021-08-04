@@ -56,9 +56,18 @@ class TestApi(AssertNumQueriesSubTestMixin, TestGeoMixin, TestCase):
         self.assertDictEqual(
             r.json(),
             {
-                'type': 'Feature',
-                'geometry': json.loads(dl.location.geometry.geojson),
-                'properties': {'name': dl.location.name},
+                'location': {
+                    'type': 'Feature',
+                    'geometry': json.loads(dl.location.geometry.geojson),
+                    'properties': {
+                        'type': 'outdoor',
+                        'is_mobile': False,
+                        'name': 'test-location',
+                        'address': 'Via del Corso, Roma, Italia',
+                    },
+                },
+                'floorplan': None,
+                'indoor': None,
             },
         )
         self.assertEqual(self.location_model.objects.count(), 1)
@@ -71,27 +80,47 @@ class TestApi(AssertNumQueriesSubTestMixin, TestGeoMixin, TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertDictEqual(
             r.json(),
-            {'type': 'Feature', 'geometry': None, 'properties': {'name': device.name}},
+            {
+                'location': {
+                    'type': 'Feature',
+                    'geometry': None,
+                    'properties': {
+                        'type': 'outdoor',
+                        'is_mobile': True,
+                        'name': 'test-remove-mobile',
+                        'address': '',
+                    },
+                },
+                'floorplan': None,
+                'indoor': '',
+            },
         )
         self.assertEqual(self.location_model.objects.count(), 1)
 
-    def test_put_update_coordinates(self):
+    def test_patch_update_coordinates(self):
         self.assertEqual(self.location_model.objects.count(), 0)
         dl = self._create_object_location()
         url = reverse(self.url_name, args=[dl.device.pk])
         url = '{0}?key={1}'.format(url, dl.device.key)
         self.assertEqual(self.location_model.objects.count(), 1)
         coords = json.loads(Point(2, 23).geojson)
-        feature = json.dumps({'type': 'Feature', 'geometry': coords})
-        r = self.client.put(url, feature, content_type='application/json')
-        self.assertEqual(r.status_code, 200)
-        self.assertDictEqual(
-            r.json(),
-            {
+        data = {
+            'location': {
                 'type': 'Feature',
                 'geometry': coords,
-                'properties': {'name': dl.location.name},
-            },
+                'properties': {
+                    'type': 'outdoor',
+                    'is_mobile': False,
+                    'name': dl.location.name,
+                    'address': dl.location.address,
+                },
+            }
+        }
+        with self.assertNumQueries(3):
+            r = self.client.patch(url, data, content_type='application/json')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(
+            r.data['location']['geometry']['coordinates'], coords['coordinates']
         )
         self.assertEqual(self.location_model.objects.count(), 1)
 
@@ -373,74 +402,5 @@ class TestGeoApi(
         l1 = self._create_location()
         path = reverse('geo_api:detail_location', args=[l1.pk])
         with self.assertNumQueries(8):
-            response = self.client.delete(path)
-        self.assertEqual(response.status_code, 204)
-
-    def test_get_devicelocation_list(self):
-        device_a = self._create_device(organization=self._get_org())
-        location_a = self._create_location(organization=self._get_org())
-        self._create_device_location(content_object=device_a, location=location_a)
-        path = reverse('geo_api:device_location_list')
-        with self.assertNumQueries(4):
-            response = self.client.get(path)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['count'], 1)
-
-    def test_post_devicelocation_list(self):
-        device_1 = self._create_device(organization=self._get_org())
-        location_1 = self._create_location(organization=self._get_org())
-        path = reverse('geo_api:device_location_list')
-        data = {
-            'indoor': None,
-            'content_object': device_1.pk,
-            'location': location_1.pk,
-            'floorplan': None,
-        }
-        with self.assertNumQueries(10):
-            response = self.client.post(path, data, content_type='application/json')
-        self.assertEqual(response.status_code, 201)
-
-    def test_get_devicelocation_detail(self):
-        device_1 = self._create_device(organization=self._get_org())
-        location_1 = self._create_location(organization=self._get_org())
-        dl = self._create_device_location(content_object=device_1, location=location_1)
-        path = reverse('geo_api:device_location_detail', args=[dl.pk])
-        with self.assertNumQueries(3):
-            response = self.client.get(path)
-        self.assertEqual(response.status_code, 200)
-
-    def test_put_devicelocation_detail(self):
-        device_1 = self._create_device(organization=self._get_org())
-        location_1 = self._create_location(organization=self._get_org())
-        dl = self._create_device_location(content_object=device_1, location=location_1)
-        path = reverse('geo_api:device_location_detail', args=[dl.pk])
-        data = {
-            'indoor': None,
-            'content_object': device_1.pk,
-            'location': location_1.pk,
-            'floorplan': None,
-        }
-        with self.assertNumQueries(12):
-            response = self.client.put(path, data, content_type='application/json')
-        self.assertEqual(response.status_code, 200)
-
-    def test_patch_devicelocation_detail(self):
-        device_1 = self._create_device(organization=self._get_org())
-        location_1 = self._create_location(organization=self._get_org())
-        dl = self._create_device_location(content_object=device_1, location=location_1)
-        path = reverse('geo_api:device_location_detail', args=[dl.pk])
-        location_2 = self._create_location(organization=self._get_org())
-        data = {'location': location_2.pk}
-        with self.assertNumQueries(10):
-            response = self.client.patch(path, data, content_type='application/json')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['location'], location_2.pk)
-
-    def test_delete_devicelocation_detail(self):
-        device_a = self._create_device(organization=self._get_org())
-        location_a = self._create_location(organization=self._get_org())
-        dl = self._create_device_location(content_object=device_a, location=location_a)
-        path = reverse('geo_api:device_location_detail', args=[dl.pk])
-        with self.assertNumQueries(6):
             response = self.client.delete(path)
         self.assertEqual(response.status_code, 204)
