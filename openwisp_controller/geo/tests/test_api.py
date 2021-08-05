@@ -440,7 +440,7 @@ class TestGeoApi(
         self._create_device_location(
             content_object=device, floorplan=fl, location=l1, indoor="123.1, 32"
         )
-        data = {'floorplan': {'floor': 31,}}
+        data = {'floorplan': {'floor': 31}}
         with self.assertNumQueries(11):
             response = self.client.patch(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
