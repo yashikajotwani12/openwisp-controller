@@ -404,3 +404,46 @@ class TestGeoApi(
         with self.assertNumQueries(8):
             response = self.client.delete(path)
         self.assertEqual(response.status_code, 204)
+
+    def test_device_location_with_outdoor_api(self):
+        device = self._create_device()
+        url = reverse('geo_api:device_location', args=[device.pk])
+        path = '{0}?key={1}'.format(url, device.key)
+        org1 = device.organization
+        l1 = self._create_location(
+            name='location1org', type='indoor', organization=org1
+        )
+        fl = self._create_floorplan(floor=13, location=l1)
+        dl = self._create_device_location(
+            content_object=device, floorplan=fl, location=l1, indoor="123.1, 32"
+        )
+        self.assertEqual(dl.floorplan, fl)
+        data = {'location': {'type': 'Feature', 'properties': {'type': 'outdoor'}}}
+        with self.assertNumQueries(5):
+            response = self.client.patch(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['location']['properties']['type'], 'outdoor')
+        self.assertIsNone(response.data['floorplan'])
+        dl.refresh_from_db()
+        self.assertEqual(dl.location.type, 'outdoor')
+        self.assertIsNone(dl.floorplan)
+
+    def test_device_location_floorplan_update(self):
+        device = self._create_device()
+        url = reverse('geo_api:device_location', args=[device.pk])
+        path = '{0}?key={1}'.format(url, device.key)
+        org1 = device.organization
+        l1 = self._create_location(
+            name='location1org', type='indoor', organization=org1
+        )
+        fl = self._create_floorplan(floor=13, location=l1)
+        self._create_device_location(
+            content_object=device, floorplan=fl, location=l1, indoor="123.1, 32"
+        )
+        data = {'floorplan': {'floor': 31,}}
+        with self.assertNumQueries(11):
+            response = self.client.patch(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['floorplan']['floor'], 31)
+        fl.refresh_from_db()
+        self.assertEqual(fl.floor, 31)
