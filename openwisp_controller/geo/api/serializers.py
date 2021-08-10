@@ -101,7 +101,7 @@ class NestedFloorplanSerializer(serializers.ModelSerializer):
 
 class DeviceLocationSerializer(serializers.ModelSerializer):
     location = NestedtLocationSerializer()
-    floorplan = NestedFloorplanSerializer()
+    floorplan = NestedFloorplanSerializer(required=False, allow_null=True)
 
     class Meta:
         model = DeviceLocation

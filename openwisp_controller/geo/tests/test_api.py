@@ -447,3 +447,58 @@ class TestGeoApi(
         self.assertEqual(response.data['floorplan']['floor'], 31)
         fl.refresh_from_db()
         self.assertEqual(fl.floor, 31)
+
+    def test_patch_update_coordinates_of_device_api(self):
+        device = self._create_device()
+        url = reverse('geo_api:device_location', args=[device.pk])
+        path = '{0}?key={1}'.format(url, device.key)
+        org1 = device.organization
+        l1 = self._create_location(
+            name='location1org', type='outdoor', organization=org1
+        )
+        self._create_device_location(content_object=device, location=l1)
+        self.assertEqual(l1.geometry.coords, (12.512124, 41.898903))
+        data = {
+            'location': {
+                'geometry': {'type': 'Point', 'coordinates': [13.512124, 42.898903]}
+            }
+        }
+        with self.assertNumQueries(5):
+            response = self.client.patch(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        l1.refresh_from_db()
+        self.assertEqual(l1.geometry.coords, (13.512124, 42.898903))
+
+    def test_put_to_change_full_location_detail_api(self):
+        device = self._create_device()
+        url = reverse('geo_api:device_location', args=[device.pk])
+        path = '{0}?key={1}'.format(url, device.key)
+        org1 = device.organization
+        l1 = self._create_location(
+            name='location1org', type='outdoor', organization=org1
+        )
+        self._create_device_location(content_object=device, location=l1)
+        coords1 = l1.geometry.coords
+        self.assertEqual(coords1, (12.512124, 41.898903))
+        self.assertEqual(l1.name, 'location1org')
+        self.assertEqual(l1.address, 'Via del Corso, Roma, Italia')
+        data = {
+            'location': {
+                'type': 'Feature',
+                'geometry': {'type': 'Point', 'coordinates': [13.51, 51.89]},
+                'properties': {
+                    'type': 'outdoor',
+                    'is_mobile': False,
+                    'name': 'GSoC21',
+                    'address': 'Change Via del Corso, Roma, Italia',
+                },
+            }
+        }
+        with self.assertNumQueries(5):
+            response = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        l1.refresh_from_db()
+        self.assertNotEqual(coords1, l1.geometry.coords)
+        self.assertEqual(l1.geometry.coords, (13.51, 51.89))
+        self.assertEqual(l1.name, 'GSoC21')
+        self.assertEqual(l1.address, 'Change Via del Corso, Roma, Italia')
