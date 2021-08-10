@@ -15,7 +15,7 @@ from .serializers import (
     FloorPlanSerializer,
     GeoJsonLocationSerializer,
     LocationDeviceSerializer,
-    LocationModelSerializer,
+    LocationSerializer,
 )
 
 Device = load_model('config', 'Device')
@@ -119,7 +119,7 @@ class FloorPlanDetailView(
 
 
 class LocationListCreateView(ProtectedAPIMixin, generics.ListCreateAPIView):
-    serializer_class = LocationModelSerializer
+    serializer_class = LocationSerializer
     queryset = Location.objects.order_by('-created')
     pagination_class = ListViewPagination
 
@@ -127,7 +127,7 @@ class LocationListCreateView(ProtectedAPIMixin, generics.ListCreateAPIView):
 class LocationDetailView(
     ProtectedAPIMixin, generics.RetrieveUpdateDestroyAPIView,
 ):
-    serializer_class = LocationModelSerializer
+    serializer_class = LocationSerializer
     queryset = Location.objects.all()
 
 

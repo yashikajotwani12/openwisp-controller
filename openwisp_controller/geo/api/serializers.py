@@ -1,4 +1,6 @@
+from django.db import transaction
 from django.urls import reverse
+from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 from rest_framework.serializers import IntegerField, SerializerMethodField
 from rest_framework_gis import serializers as gis_serializers
@@ -60,7 +62,19 @@ class FloorPlanSerializer(BaseSerializer):
         return data
 
 
-class LocationModelSerializer(BaseSerializer):
+class FloorPlanLocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FloorPlan
+        fields = (
+            'floor',
+            'image',
+        )
+        extra_kwargs = {'floor': {'required': False}, 'image': {'required': False}}
+
+
+class LocationSerializer(serializers.ModelSerializer):
+    floorplan = FloorPlanLocationSerializer(required=False, allow_null=True)
+
     class Meta:
         model = Location
         fields = (
@@ -73,8 +87,56 @@ class LocationModelSerializer(BaseSerializer):
             'geometry',
             'created',
             'modified',
+            'floorplan',
         )
         read_only_fields = ('created', 'modified')
+
+    def validate(self, data):
+        # Fix this errortoday and will need to override the update method
+        if data.get('type') == 'outdoor' and data.get('floorplan'):
+            raise serializers.ValidationError(
+                {
+                    'type': _(
+                        'Floorplan can only be added with location of the type "indoor"'
+                    )
+                }
+            )
+        return data
+
+    def to_representation(self, instance):
+        request = self.context['request']
+        data = super().to_representation(instance)
+        floorplans = instance.floorplan_set.all()
+        floorplan_list = []
+        for floorplan in floorplans:
+            dict_ = {
+                'floor': floorplan.floor,
+                'image': request.build_absolute_uri(floorplan.image.url),
+            }
+            floorplan_list.append(dict_)
+        data['floorplan'] = floorplan_list
+        return data
+
+    def create(self, validated_data):
+        floorplan_data = None
+
+        if validated_data.get('floorplan'):
+            floorplan_data = validated_data.pop('floorplan')
+
+        instance = self.instance or self.Meta.model(**validated_data)
+        with transaction.atomic():
+            instance.full_clean()
+            instance.save()
+
+        if floorplan_data:
+            floorplan_data['locaiton'] = instance
+            floorplan_data['organization'] = instance.organization
+            fl = FloorPlan.objects.create(**floorplan_data)
+            with transaction.atomic():
+                fl.full_clean()
+                fl.save()
+
+        return instance
 
 
 class NestedtLocationSerializer(gis_serializers.GeoFeatureModelSerializer):
