@@ -340,7 +340,7 @@ class TestGeoApi(
         self._create_org_user(user=staff_user, organization=org1, is_admin=True)
         self.client.force_login(staff_user)
         path = reverse('geo_api:list_location')
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(7):
             response = self.client.get(path)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
@@ -358,14 +358,14 @@ class TestGeoApi(
             'address': 'Via del Corso, Roma, Italia',
             'geometry': coords,
         }
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(9):
             response = self.client.post(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
     def test_get_location_detail(self):
         l1 = self._create_location()
         path = reverse('geo_api:detail_location', args=[l1.pk])
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(4):
             response = self.client.get(path)
         self.assertEqual(response.status_code, 200)
 
@@ -382,7 +382,7 @@ class TestGeoApi(
             'address': 'Via del Corso, Roma, Italia',
             'geometry': coords,
         }
-        with self.assertNumQueries(7):
+        with self.assertNumQueries(6):
             response = self.client.put(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['organization'], org1.pk)
@@ -393,10 +393,51 @@ class TestGeoApi(
         self.assertEqual(l1.name, 'test-location')
         path = reverse('geo_api:detail_location', args=[l1.pk])
         data = {'name': 'change-test-location'}
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(5):
             response = self.client.patch(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['name'], 'change-test-location')
+
+    def test_create_location_outdoor_with_floorplan(self):
+        path = reverse('geo_api:list_location')
+        coords = json.loads(Point(2, 23).geojson)
+        data = {
+            'organization': self._get_org().pk,
+            'name': 'test-location',
+            'type': 'outdoor',
+            'is_mobile': False,
+            'address': 'Via del Corso, Roma, Italia',
+            'geometry': coords,
+            'floorplan': {'floor': 12},
+        }
+        with self.assertNumQueries(3):
+            response = self.client.post(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            "Floorplan can only be added with location of the type indoor",
+            str(response.content),
+        )
+
+    def test_patch_floorplan_detail_api(self):
+        l1 = self._create_location(type='indoor')
+        fl = self._create_floorplan(location=l1)
+        path = reverse('geo_api:detail_location', args=[l1.pk])
+        data = {'floorplan': {'floor': 13}}
+        with self.assertNumQueries(13):
+            response = self.client.patch(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        fl.refresh_from_db()
+        self.assertEqual(fl.floor, 13)
+
+    def test_change_location_type_to_outdoor_api(self):
+        l1 = self._create_location(type='indoor')
+        self._create_floorplan(location=l1)
+        path = reverse('geo_api:detail_location', args=[l1.pk])
+        data = {'type': 'outdoor'}
+        with self.assertNumQueries(10):
+            response = self.client.patch(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['floorplan'], [])
 
     def test_delete_location_detail(self):
         l1 = self._create_location()

@@ -1001,6 +1001,17 @@ Patch details of location
 
     PATCH /api/v1/controller/location/{pk}/
 
+**Note**: Only the first floorplan data present can be
+edited or changed. Setting the `type` of location to
+outdoor will remove all the floorplans associated with it.
+
+**Example usage**: To change the floorplan data of a location
+
+.. code-block:: shell
+
+    echo '{"floorplan":{"floor": 11}}' | \
+    http PATCH http://127.0.0.1:8000/api/v1/controller/location/76b7d9cc-4ffd-4a43-b1b0-8f8befd1a7c0/
+
 Delete location
 ^^^^^^^^^^^^^^^
 

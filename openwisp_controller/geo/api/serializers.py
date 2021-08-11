@@ -96,8 +96,8 @@ class LocationSerializer(FilterSerializerByOrgManaged, serializers.ModelSerializ
             raise serializers.ValidationError(
                 {
                     'type': _(
-                        'Floorplan can only be added with location of '
-                        'the type "indoor"'
+                        "Floorplan can only be added with location of "
+                        "the type indoor"
                     )
                 }
             )
