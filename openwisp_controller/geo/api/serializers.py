@@ -72,7 +72,7 @@ class FloorPlanLocationSerializer(serializers.ModelSerializer):
         extra_kwargs = {'floor': {'required': False}, 'image': {'required': False}}
 
 
-class LocationSerializer(serializers.ModelSerializer):
+class LocationSerializer(FilterSerializerByOrgManaged, serializers.ModelSerializer):
     floorplan = FloorPlanLocationSerializer(required=False, allow_null=True)
 
     class Meta:
@@ -92,12 +92,12 @@ class LocationSerializer(serializers.ModelSerializer):
         read_only_fields = ('created', 'modified')
 
     def validate(self, data):
-        # Fix this errortoday and will need to override the update method
         if data.get('type') == 'outdoor' and data.get('floorplan'):
             raise serializers.ValidationError(
                 {
                     'type': _(
-                        'Floorplan can only be added with location of the type "indoor"'
+                        'Floorplan can only be added with location of '
+                        'the type "indoor"'
                     )
                 }
             )
@@ -106,7 +106,7 @@ class LocationSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         request = self.context['request']
         data = super().to_representation(instance)
-        floorplans = instance.floorplan_set.all()
+        floorplans = instance.floorplan_set.all().order_by('-modified')
         floorplan_list = []
         for floorplan in floorplans:
             dict_ = {
@@ -129,14 +129,43 @@ class LocationSerializer(serializers.ModelSerializer):
             instance.save()
 
         if floorplan_data:
-            floorplan_data['locaiton'] = instance
+            floorplan_data['location'] = instance
             floorplan_data['organization'] = instance.organization
-            fl = FloorPlan.objects.create(**floorplan_data)
             with transaction.atomic():
+                fl = FloorPlan.objects.create(**floorplan_data)
                 fl.full_clean()
                 fl.save()
 
         return instance
+
+    def update(self, instance, validated_data):
+        floorplan_data = None
+        if validated_data.get('floorplan'):
+            floorplan_data = validated_data.pop('floorplan')
+
+        if floorplan_data:
+            floorplan_obj = instance.floorplan_set.order_by('-created').first()
+            if floorplan_obj:
+                # Update the first floorplan object
+                floorplan_obj.floor = floorplan_data.get('floor', floorplan_obj.floor)
+                floorplan_obj.image = floorplan_data.get('image', floorplan_obj.image)
+                with transaction.atomic():
+                    floorplan_obj.full_clean()
+                    floorplan_obj.save()
+            else:
+                floorplan_data['location'] = instance
+                floorplan_data['organization'] = instance.organization
+                fl = FloorPlan.objects.create(**floorplan_data)
+                with transaction.atomic():
+                    fl.full_clean()
+                    fl.save()
+
+        if instance.type == 'indoor' and validated_data.get('type') == 'outdoor':
+            floorplans = instance.floorplan_set.all()
+            for floorplan in floorplans:
+                floorplan.delete()
+
+        return super().update(instance, validated_data)
 
 
 class NestedtLocationSerializer(gis_serializers.GeoFeatureModelSerializer):
