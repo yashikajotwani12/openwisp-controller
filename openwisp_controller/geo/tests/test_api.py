@@ -692,8 +692,8 @@ class TestGeoApi(
         fl_image = self._get_in_memory_upload_file()
         data = {
             'location.type': 'indoor',
-            'location.name': 'Jai BajaranBali',
-            'location.address': 'Hanuman Mandir',
+            'location.name': 'GSoC21',
+            'location.address': 'Via del Corso, Roma, Italia',
             'location.geometry': [coords],
             'floorplan.floor': ['21'],
             'indoor': ['12.342,23.541'],
