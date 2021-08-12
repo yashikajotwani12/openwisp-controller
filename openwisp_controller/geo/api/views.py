@@ -26,7 +26,20 @@ FloorPlan = load_model('geo', 'FloorPlan')
 
 class DevicePermission(BasePermission):
     def has_object_permission(self, request, view, obj):
-        return request.query_params.get('key') == obj.key
+        if request.query_params.get('token'):
+            received_token = request.query_params.get('token')
+            user_token = request.user.auth_token.key
+            if received_token == user_token:
+                return True
+        elif request.query_params.get('key'):
+            received_key = request.query_params.get('key')
+            try:
+                device_key = obj.key
+            except AttributeError:
+                device_key = obj.device.key
+            if received_key == device_key:
+                return True
+        return False
 
 
 class ListViewPagination(pagination.PageNumberPagination):

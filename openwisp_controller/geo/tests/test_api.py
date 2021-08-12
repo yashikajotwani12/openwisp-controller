@@ -3,10 +3,11 @@ import tempfile
 
 from django.contrib.auth.models import Permission
 from django.contrib.gis.geos import Point
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
 from django.urls import reverse
 from PIL import Image
+from rest_framework.authtoken.models import Token
 from swapper import load_model
 
 from openwisp_controller.config.tests.utils import CreateConfigTemplateMixin
@@ -543,3 +544,71 @@ class TestGeoApi(
         self.assertEqual(l1.geometry.coords, (13.51, 51.89))
         self.assertEqual(l1.name, 'GSoC21')
         self.assertEqual(l1.address, 'Change Via del Corso, Roma, Italia')
+
+    def test_create_device_location_with_user_token_api(self):
+        user = self._create_admin(username='usertoken', email='userwith@token.com')
+        token, created = Token.objects.get_or_create(user=user)
+        self.client = Client(HTTP_AUTHORIZATION='Token ' + token.key)
+        self.client.force_login(user)
+        self.assertEqual(self.location_model.objects.count(), 0)
+        device = self._create_device()
+        url = reverse('geo_api:device_location', args=[device.pk])
+        path = '{0}?token={1}'.format(url, token.key)
+        with self.assertNumQueries(13):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.location_model.objects.count(), 1)
+
+    def test_device_location_with_wrong_user_token_api(self):
+        user = self._create_admin(username='usertoken', email='userwith@notoken.com')
+        self.client = Client(HTTP_AUTHORIZATION='Token ' + '')
+        self.client.force_login(user)
+        self.assertEqual(self.location_model.objects.count(), 0)
+        device = self._create_device()
+        url = reverse('geo_api:device_location', args=[device.pk])
+        path = '{0}?token={1}'.format(url, '')
+        with self.assertNumQueries(3):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 403)
+
+    def test_patch_device_location_with_user_token_api(self):
+        user = self._create_admin(username='usertoken', email='userwith@token.com')
+        token, created = Token.objects.get_or_create(user=user)
+        self.client = Client(HTTP_AUTHORIZATION='Token ' + token.key)
+        self.client.force_login(user)
+        device = self._create_device()
+        url = reverse('geo_api:device_location', args=[device.pk])
+        path = '{0}?token={1}'.format(url, token.key)
+        org1 = device.organization
+        l1 = self._create_location(
+            name='location1org', type='outdoor', organization=org1
+        )
+        self._create_device_location(content_object=device, location=l1)
+        self.assertEqual(l1.geometry.coords, (12.512124, 41.898903))
+        data = {
+            'location': {
+                'geometry': {'type': 'Point', 'coordinates': [13.512124, 42.898903]}
+            }
+        }
+        with self.assertNumQueries(6):
+            response = self.client.patch(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        l1.refresh_from_db()
+        self.assertEqual(l1.geometry.coords, (13.512124, 42.898903))
+
+    def test_delete_device_location_with_user_token_api(self):
+        user = self._create_admin(username='usertoken', email='userwith@token.com')
+        token, created = Token.objects.get_or_create(user=user)
+        self.client = Client(HTTP_AUTHORIZATION='Token ' + token.key)
+        self.client.force_login(user)
+        device = self._create_device()
+        url = reverse('geo_api:device_location', args=[device.pk])
+        path = '{0}?token={1}'.format(url, token.key)
+        org1 = device.organization
+        l1 = self._create_location(
+            name='location1org', type='outdoor', organization=org1
+        )
+        self._create_device_location(content_object=device, location=l1)
+        with self.assertNumQueries(7):
+            response = self.client.delete(path)
+        self.assertEqual(response.status_code, 204)
