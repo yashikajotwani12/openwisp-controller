@@ -153,6 +153,9 @@ class LocationSerializer(FilterSerializerByOrgManaged, serializers.ModelSerializ
                     floorplan_obj.full_clean()
                     floorplan_obj.save()
             else:
+                if validated_data.get('type') == 'indoor':
+                    instance.type = 'indoor'
+                    instance.save()
                 floorplan_data['location'] = instance
                 floorplan_data['organization'] = instance.organization
                 fl = FloorPlan.objects.create(**floorplan_data)

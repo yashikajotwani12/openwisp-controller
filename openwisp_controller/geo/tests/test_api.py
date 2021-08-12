@@ -634,13 +634,14 @@ class TestGeoApi(
     def test_create_location_with_floorplan(self):
         path = reverse('geo_api:list_location')
         fl_image = self._get_in_memory_upload_file()
+        coords = json.loads(Point(2, 23).geojson)
         data = {
             'organization': self._get_org().pk,
             'name': 'GSoC21',
             'type': 'indoor',
             'is_mobile': False,
             'address': 'Via del Corso, Roma, Italia',
-            'geometry': ['{"Type":"Point", "coordinates":[12.3451, 54.231]}'],
+            'geometry': [coords],
             'floorplan.floor': ['23'],
             'floorplan.image': [fl_image],
         }
@@ -649,3 +650,57 @@ class TestGeoApi(
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Location.objects.count(), 1)
         self.assertEqual(FloorPlan.objects.count(), 1)
+
+    def test_create_new_floorplan_with_put_location_api(self):
+        org1 = self._get_org()
+        l1 = self._create_location(
+            name='location1org', type='outdoor', organization=org1
+        )
+        path = reverse('geo_api:detail_location', args=(l1.pk,))
+        coords = json.loads(Point(2, 23).geojson)
+        fl_image = self._get_in_memory_upload_file()
+        data = {
+            'organization': self._get_org().pk,
+            'name': 'GSoC21',
+            'type': 'indoor',
+            'is_mobile': False,
+            'address': 'Via del Corso, Roma, Italia',
+            'geometry': [coords],
+            'floorplan.floor': '23',
+            'floorplan.image': fl_image,
+        }
+        with self.assertNumQueries(16):
+            response = self.client.put(
+                path, encode_multipart(BOUNDARY, data), content_type=MULTIPART_CONTENT
+            )
+        self.assertEqual(response.status_code, 200)
+
+    def test_update_device_location_to_indoor_api(self):
+        user = self._create_admin(username='usertoken', email='userwith@token.com')
+        token, created = Token.objects.get_or_create(user=user)
+        self.client = Client(HTTP_AUTHORIZATION='Token ' + token.key)
+        self.client.force_login(user)
+        device = self._create_device(name='00:22:23:34:45:56')
+        org1 = device.organization
+        l1 = self._create_location(
+            name='location1org', type='outdoor', organization=org1
+        )
+        self._create_device_location(content_object=device, location=l1)
+        url = reverse('geo_api:device_location', args=[device.pk])
+        path = '{0}?token={1}'.format(url, token.key)
+        coords = json.loads(Point(2, 23).geojson)
+        fl_image = self._get_in_memory_upload_file()
+        data = {
+            'location.type': 'indoor',
+            'location.name': 'Jai BajaranBali',
+            'location.address': 'Hanuman Mandir',
+            'location.geometry': [coords],
+            'floorplan.floor': ['21'],
+            'indoor': ['12.342,23.541'],
+            'floorplan.image': [fl_image],
+        }
+        with self.assertNumQueries(10):
+            response = self.client.put(
+                path, encode_multipart(BOUNDARY, data), content_type=MULTIPART_CONTENT
+            )
+        self.assertEqual(response.status_code, 200)
