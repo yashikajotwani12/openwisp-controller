@@ -1,8 +1,10 @@
 import json
 import tempfile
+from io import BytesIO
 
 from django.contrib.auth.models import Permission
 from django.contrib.gis.geos import Point
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.test import Client, TestCase
 from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
 from django.urls import reverse
@@ -249,6 +251,22 @@ class TestGeoApi(
         device_location.full_clean()
         device_location.save()
         return device_location
+
+    def _get_in_memory_upload_file(self):
+        image = Image.new("RGB", (100, 100))
+        with tempfile.NamedTemporaryFile(suffix=".png", mode="w+b") as tmp_file:
+            image.save(tmp_file, format="png")
+            tmp_file.seek(0)
+            byio = BytesIO(tmp_file.read())
+            inm_file = InMemoryUploadedFile(
+                file=byio,
+                field_name="avatar",
+                name="testImage.png",
+                content_type="image/png",
+                size=byio.getbuffer().nbytes,
+                charset=None,
+            )
+        return inm_file
 
     def test_get_floorplan_list(self):
         path = reverse('geo_api:list_floorplan')
@@ -612,3 +630,22 @@ class TestGeoApi(
         with self.assertNumQueries(7):
             response = self.client.delete(path)
         self.assertEqual(response.status_code, 204)
+
+    def test_create_location_with_floorplan(self):
+        path = reverse('geo_api:list_location')
+        fl_image = self._get_in_memory_upload_file()
+        data = {
+            'organization': self._get_org().pk,
+            'name': 'GSoC21',
+            'type': 'indoor',
+            'is_mobile': False,
+            'address': 'Via del Corso, Roma, Italia',
+            'geometry': ['{"Type":"Point", "coordinates":[12.3451, 54.231]}'],
+            'floorplan.floor': ['23'],
+            'floorplan.image': [fl_image],
+        }
+        with self.assertNumQueries(16):
+            response = self.client.post(path, data, format='multipart')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Location.objects.count(), 1)
+        self.assertEqual(FloorPlan.objects.count(), 1)
