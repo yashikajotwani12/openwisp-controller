@@ -120,7 +120,7 @@ class LocationDeviceList(FilterByParentManaged, generics.ListAPIView):
 
 class FloorPlanListCreateView(ProtectedAPIMixin, generics.ListCreateAPIView):
     serializer_class = FloorPlanSerializer
-    queryset = FloorPlan.objects.order_by('-created')
+    queryset = FloorPlan.objects.select_related().order_by('-created')
     pagination_class = ListViewPagination
 
 
@@ -128,7 +128,7 @@ class FloorPlanDetailView(
     ProtectedAPIMixin, generics.RetrieveUpdateDestroyAPIView,
 ):
     serializer_class = FloorPlanSerializer
-    queryset = FloorPlan.objects.all()
+    queryset = FloorPlan.objects.select_related()
 
 
 class LocationListCreateView(ProtectedAPIMixin, generics.ListCreateAPIView):

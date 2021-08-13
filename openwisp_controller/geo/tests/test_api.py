@@ -318,7 +318,7 @@ class TestGeoApi(
         image = Image.new('RGB', (100, 100))
         image.save(temporary_image.name)
         data = {'floor': 12, 'image': temporary_image, 'location': l1.pk}
-        with self.assertNumQueries(12):
+        with self.assertNumQueries(10):
             response = self.client.put(
                 path, encode_multipart(BOUNDARY, data), content_type=MULTIPART_CONTENT
             )
@@ -331,7 +331,7 @@ class TestGeoApi(
         self.assertEqual(f1.floor, 1)
         path = reverse('geo_api:detail_floorplan', args=[f1.pk])
         data = {'floor': 12}
-        with self.assertNumQueries(10):
+        with self.assertNumQueries(8):
             response = self.client.patch(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['floor'], 12)

@@ -880,35 +880,54 @@ Get device location
 
 .. code-block:: text
 
-    GET /api/v1/controller/device/{id}/location/
+    GET /api/v1/controller/device/{id}/location/?key={device key}
+
+**Note**: Device Location endpoints can only be accessed with the
+Device ``key`` or User ``Token``.
 
 Update device location
 ^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    PUT /api/v1/controller/device/{id}/location/
+    PUT /api/v1/controller/device/{id}/location/?key={device key}
 
 Patch details of device location
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    PATCH /api/v1/controller/device/{id}/location/
+    PATCH /api/v1/controller/device/{id}/location/?key={device key}
+
+**Example Usage**: To change the coordinates of a device
+
+.. code-block:: shell
+
+    echo '{"location":{"geometry": ["Type": "Point","coordinates": [12.345, 67.89]]}}' | \
+    http PATCH http://127.0.0.1:8000/api/v1/controller/device/76b7d9cc-4ffd-4a43-b1b0-8f8befd1a7c0/ \
+    ?key=0e95a83c94c85aaf32ace159bfdb5d7b
 
 Patch details of device floorplan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    PATCH /api/v1/controller/device/{id}/location/
+    PATCH /api/v1/controller/device/{id}/location/?key={device key}
+
+**Example usage**: To change the floorplan data of a device location
+
+.. code-block:: shell
+
+    echo '{"floorplan":{"floor": 11}}' | \
+    http PATCH http://127.0.0.1:8000/api/v1/controller/device/76b7d9cc-4ffd-4a43-b1b0-8f8befd1a7c0/ \
+    ?key=0e95a83c94c85aaf32ace159bfdb5d7b
 
 Delete device location
 ^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    DELETE /api/v1/controller/device/{id}/location/
+    DELETE /api/v1/controller/device/{id}/location/?key={device key}
 
 List of devices in a location
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

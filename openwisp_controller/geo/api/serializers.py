@@ -1,3 +1,4 @@
+from django.contrib.humanize.templatetags.humanize import ordinal
 from django.db import transaction
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -42,10 +43,13 @@ class BaseSerializer(FilterSerializerByOrgManaged, ValidatedModelSerializer):
 
 
 class FloorPlanSerializer(BaseSerializer):
+    name = serializers.SerializerMethodField()
+
     class Meta:
         model = FloorPlan
         fields = (
             'id',
+            'name',
             'floor',
             'image',
             'location',
@@ -53,6 +57,10 @@ class FloorPlanSerializer(BaseSerializer):
             'modified',
         )
         read_only_fields = ('created', 'modified')
+
+    def get_name(self, obj):
+        name = '{0} {1} Floor'.format(obj.location.name, ordinal(obj.floor))
+        return name
 
     def validate(self, data):
         if data.get('location'):
