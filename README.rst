@@ -883,7 +883,10 @@ Get device location
     GET /api/v1/controller/device/{id}/location/?key={device key}
 
 **Note**: Device Location endpoints can only be accessed with the
-Device ``key`` or User ``Token``.
+Device ``key`` or User ``Token``. When there is no location associated
+with the device with ``GET`` request a location of ``outdoor`` type
+will get automatically created with null geometry value, and then the
+data of the locaiton, floorplan and indoor coordinates can be manipulated.
 
 Update device location
 ^^^^^^^^^^^^^^^^^^^^^^
