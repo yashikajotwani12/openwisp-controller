@@ -148,7 +148,7 @@ the administration dashboard.
 Connection App
 ~~~~~~~~~~~~~~
 
-This app enables to controller to utilize various protocols for designated purposes.
+This app enables the controller to utilize various protocols for designated purposes.
 Currently, the default connnection protocols are SNMP and SSH, but the protocol
 mechanism is extensible and custom protocols can be implemented as well.
 
