@@ -26,20 +26,15 @@ FloorPlan = load_model('geo', 'FloorPlan')
 
 class DevicePermission(BasePermission):
     def has_object_permission(self, request, view, obj):
-        if request.query_params.get('token'):
-            received_token = request.query_params.get('token')
-            user_token = request.user.auth_token.key
-            if received_token == user_token:
-                return True
-        elif request.query_params.get('key'):
+        if request.query_params.get('key'):
             received_key = request.query_params.get('key')
             try:
                 device_key = obj.key
             except AttributeError:
                 device_key = obj.device.key
-            if received_key == device_key:
-                return True
-        return False
+            return received_key == device_key
+        else:
+            return False
 
 
 class ListViewPagination(pagination.PageNumberPagination):
@@ -56,12 +51,44 @@ class ProtectedAPIMixin(FilterByOrganizationManaged):
     ]
 
 
-class DeviceLocationView(generics.RetrieveUpdateDestroyAPIView):
+class DeviceLocationView(
+    FilterByOrganizationManaged, generics.RetrieveUpdateDestroyAPIView
+):
     serializer_class = DeviceLocationSerializer
-    permission_classes = (DevicePermission,)
+    authentication_classes = [
+        BearerAuthentication,
+        SessionAuthentication,
+    ]
+    permission_classes = [IsAuthenticated, DjangoModelPermissions]
     queryset = Device.objects.select_related(
         'devicelocation', 'devicelocation__location'
     )
+
+    def get_organization_queryset(self, qs):
+        # Overriding this method because the class
+        # `FilterByOrganizationManaged` tries to
+        # filter object for non-authenticated users.
+        if self.request.user.is_authenticated and not self.request.query_params.get(
+            'key'
+        ):
+            return qs.filter(
+                **{
+                    self.organization_lookup: getattr(
+                        self.request.user, self._user_attr
+                    )
+                }
+            )
+        return qs
+
+    def get_permissions(self):
+        if not self.request.user.is_authenticated:
+            self.permission_classes.clear()
+            self.permission_classes.append(DevicePermission)
+        else:
+            if 'key=' in self.request.META.get('QUERY_STRING'):
+                self.permission_classes.clear()
+                self.permission_classes.append(DevicePermission)
+        return [perm() for perm in self.permission_classes]
 
     def get_devicelocation(self, device):
         try:
