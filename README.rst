@@ -880,27 +880,36 @@ Get device location
 
 .. code-block:: text
 
-    GET /api/v1/controller/device/{id}/location/?key={device key}
+    GET /api/v1/controller/device/{id}/location/
 
-**Note**: Device Location endpoints can only be accessed with the
-Device ``key`` or User ``Token``. When there is no location associated
-with the device with ``GET`` request a location of ``outdoor`` type
-will get automatically created with null geometry value, and then the
-data of the locaiton, floorplan and indoor coordinates can be manipulated.
+The device location endpoints can be accesseed in two ways:
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+* As all the other endpoints it can be accessed
+  with token or session authentication, when this
+  happens permissions and multi-tenancy is respected.
+
+* When device key is passed as ``query_param``, we assume
+  the device itself is updating its position, so no check for
+  multi-tenancy or permissions is performed.
 
 Update device location
 ^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    PUT /api/v1/controller/device/{id}/location/?key={device key}
+    PUT /api/v1/controller/device/{id}/location/
+
+**Note**:- To access this endpoints, `see here <#the-device-location-endpoints-can-be-accesseed-in-two-ways>`_
 
 Patch details of device location
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    PATCH /api/v1/controller/device/{id}/location/?key={device key}
+    PATCH /api/v1/controller/device/{id}/location/
+
+**Note**:- To access this endpoints, `see here <#the-device-location-endpoints-can-be-accesseed-in-two-ways>`_
 
 **Example Usage**: To change the coordinates of a device
 
@@ -910,27 +919,15 @@ Patch details of device location
     http PATCH http://127.0.0.1:8000/api/v1/controller/device/76b7d9cc-4ffd-4a43-b1b0-8f8befd1a7c0/ \
     ?key=0e95a83c94c85aaf32ace159bfdb5d7b
 
-Patch details of device floorplan
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: text
-
-    PATCH /api/v1/controller/device/{id}/location/?key={device key}
-
-**Example usage**: To change the floorplan data of a device location
-
-.. code-block:: shell
-
-    echo '{"floorplan":{"floor": 11}}' | \
-    http PATCH http://127.0.0.1:8000/api/v1/controller/device/76b7d9cc-4ffd-4a43-b1b0-8f8befd1a7c0/ \
-    ?key=0e95a83c94c85aaf32ace159bfdb5d7b
 
 Delete device location
 ^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    DELETE /api/v1/controller/device/{id}/location/?key={device key}
+    DELETE /api/v1/controller/device/{id}/location/
+
+**Note**:- To access this endpoints, `see here <#the-device-location-endpoints-can-be-accesseed-in-two-ways>`_
 
 List of devices in a location
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
