@@ -5,7 +5,7 @@ from io import BytesIO
 from django.contrib.auth.models import Permission
 from django.contrib.gis.geos import Point
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.test import Client, TestCase
+from django.test import TestCase
 from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
 from django.urls import reverse
 from PIL import Image
@@ -562,18 +562,6 @@ class TestGeoApi(
         self.assertEqual(l1.name, 'GSoC21')
         self.assertEqual(l1.address, 'Change Via del Corso, Roma, Italia')
 
-    def test_device_location_with_wrong_user_token_api(self):
-        user = self._create_admin(username='usertoken', email='userwith@notoken.com')
-        self.client = Client(HTTP_AUTHORIZATION='Token ' + '')
-        self.client.force_login(user)
-        self.assertEqual(self.location_model.objects.count(), 0)
-        device = self._create_device()
-        url = reverse('geo_api:device_location', args=[device.pk])
-        path = '{0}?token={1}'.format(url, '')
-        with self.assertNumQueries(3):
-            response = self.client.get(path)
-        self.assertEqual(response.status_code, 403)
-
     def test_create_location_with_floorplan(self):
         path = reverse('geo_api:list_location')
         fl_image = self._get_in_memory_upload_file()
@@ -613,6 +601,104 @@ class TestGeoApi(
             'floorplan.image': fl_image,
         }
         with self.assertNumQueries(16):
+            response = self.client.put(
+                path, encode_multipart(BOUNDARY, data), content_type=MULTIPART_CONTENT
+            )
+        self.assertEqual(response.status_code, 200)
+
+    def test_device_location_unauth_no_key(self):
+        device = self._create_device()
+        path = reverse('geo_api:device_location', args=(device.pk,))
+        self.client.logout()
+        with self.assertNumQueries(1):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 401)
+
+    def test_device_location_auth_access_own_org_data_with_no_key(self):
+        org1 = self._create_org(name='org1')
+        device = self._create_device(name='00:11:22:33:44:55', organization=org1)
+        staff_user = self._get_operator()
+        device_perm = Permission.objects.filter(codename__endswith='device')
+        staff_user.user_permissions.add(*device_perm)
+        self._create_org_user(user=staff_user, organization=org1, is_admin=True)
+        self.client.force_login(staff_user)
+        path = reverse('geo_api:device_location', args=(device.pk,))
+        with self.assertNumQueries(14):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 200)
+
+    def test_device_location_auth_access_different_org_data_with_no_key(self):
+        org2 = self._create_org(name='org2')
+        org1 = self._create_org(name='org1')
+        device2 = self._create_device(name='00:11:22:33:44:66', organization=org2)
+        staff_user = self._get_operator()
+        device_perm = Permission.objects.filter(codename__endswith='device')
+        staff_user.user_permissions.add(*device_perm)
+        self._create_org_user(user=staff_user, organization=org1, is_admin=True)
+        self.client.force_login(staff_user)
+        path = reverse('geo_api:device_location', args=(device2.pk,))
+        with self.assertNumQueries(5):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 404)
+
+    def test_device_location_auth_access_different_org_data_with_key(self):
+        org1 = self._create_org(name='org1')
+        org2 = self._create_org(name='org2')
+        device2 = self._create_device(name='00:11:22:33:44:66', organization=org2)
+        staff_user = self._get_operator()
+        device_perm = Permission.objects.filter(codename__endswith='device')
+        staff_user.user_permissions.add(*device_perm)
+        self._create_org_user(user=staff_user, organization=org1, is_admin=True)
+        self.client.force_login(staff_user)
+        url = reverse('geo_api:device_location', args=(device2.pk,))
+        path = '{0}?key={1}'.format(url, device2.key)
+        with self.assertNumQueries(12):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 200)
+
+    def test_device_location_unauth_with_correct_key(self):
+        device = self._create_device()
+        url = reverse('geo_api:device_location', args=(device.pk,))
+        path = '{0}?key={1}'.format(url, device.key)
+        self.client.logout()
+        with self.assertNumQueries(10):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 200)
+
+    def test_device_location_unauth_with_wrong_key(self):
+        device = self._create_device()
+        url = reverse('geo_api:device_location', args=(device.pk,))
+        path = '{0}?key={1}'.format(url, 12345)
+        self.client.logout()
+        with self.assertNumQueries(1):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 401)
+
+    def test_update_device_location_to_indoor_api(self):
+        org1 = self._create_org(name='org1')
+        staff_user = self._get_operator()
+        device_perm = Permission.objects.filter(codename__endswith='device')
+        staff_user.user_permissions.add(*device_perm)
+        self._create_org_user(user=staff_user, organization=org1, is_admin=True)
+        self.client.force_login(staff_user)
+        device = self._create_device(name='00:22:23:34:45:56', organization=org1)
+        l1 = self._create_location(
+            name='location1org', type='outdoor', organization=org1
+        )
+        self._create_device_location(content_object=device, location=l1)
+        path = reverse('geo_api:device_location', args=[device.pk])
+        coords = json.loads(Point(2, 23).geojson)
+        fl_image = self._get_in_memory_upload_file()
+        data = {
+            'location.type': 'indoor',
+            'location.name': 'GSoC21',
+            'location.address': 'OpenWISP',
+            'location.geometry': [coords],
+            'floorplan.floor': ['21'],
+            'indoor': ['12.342,23.541'],
+            'floorplan.image': [fl_image],
+        }
+        with self.assertNumQueries(11):
             response = self.client.put(
                 path, encode_multipart(BOUNDARY, data), content_type=MULTIPART_CONTENT
             )

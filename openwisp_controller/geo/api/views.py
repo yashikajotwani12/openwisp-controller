@@ -82,13 +82,18 @@ class DeviceLocationView(
 
     def get_permissions(self):
         if not self.request.user.is_authenticated:
-            self.permission_classes.clear()
-            self.permission_classes.append(DevicePermission)
+            return [
+                DevicePermission(),
+            ]
+        elif 'key=' in self.request.META.get('QUERY_STRING'):
+            return [
+                DevicePermission(),
+            ]
         else:
-            if 'key=' in self.request.META.get('QUERY_STRING'):
-                self.permission_classes.clear()
-                self.permission_classes.append(DevicePermission)
-        return [perm() for perm in self.permission_classes]
+            return [
+                IsAuthenticated(),
+                DjangoModelPermissions(),
+            ]
 
     def get_devicelocation(self, device):
         try:
