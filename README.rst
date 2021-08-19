@@ -148,14 +148,16 @@ the administration dashboard.
 Connection App
 ~~~~~~~~~~~~~~
 
-This app enables the controller to utilize various protocols for designated purposes.
-Currently, the default connnection protocols are SNMP and SSH, but the protocol
+This app allows OpenWISP Controller to use different protocols to reach network devices.
+Currently, the default connnection protocols are 
+
+and SSH, but the protocol
 mechanism is extensible and custom protocols can be implemented as well.
 
-The SNMP connector is useful to collect monitoring information, to be used in
-`openwisp-monitoring`_ module.
+SSH
+^^^
 
-The SSH connector enables the controller to instantiate connections to the devices
+The SSH connector allows the controller to initialize connections to the devices
 in order perform `push operations <#how-to-configure-push-updates>`__:
 
 - Sending configuration updates.
@@ -166,6 +168,12 @@ Access via SSH key is recommended, the SSH key algorithms supported are:
 
 - RSA
 - Ed25519
+
+SNMP
+^^^^
+
+The SNMP connector is useful to collect monitoring information and it's used in
+`openwisp-monitoring`_.
 
 Geo App
 ~~~~~~~
