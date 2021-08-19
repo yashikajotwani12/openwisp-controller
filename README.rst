@@ -149,10 +149,8 @@ Connection App
 ~~~~~~~~~~~~~~
 
 This app allows OpenWISP Controller to use different protocols to reach network devices.
-Currently, the default connnection protocols are 
-
-and SSH, but the protocol
-mechanism is extensible and custom protocols can be implemented as well.
+Currently, the default connnection protocols are SSH and SNMP, but the protocol
+mechanism is extensible and more protocols can be implemented if needed.
 
 SSH
 ^^^
