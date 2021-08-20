@@ -171,7 +171,8 @@ SNMP
 ^^^^
 
 The SNMP connector is useful to collect monitoring information and it's used in
-`openwisp-monitoring`_.
+`openwisp-monitoring`_ for performing checks to collect monitoring information.
+`Read more <https://github.com/openwisp/openwisp-monitoring/pull/309#discussion_r692566202>`_ on how to use it.
 
 Geo App
 ~~~~~~~
@@ -241,17 +242,17 @@ Configure timeout for the TCP connect when establishing a SSH connection.
 ``OPENWISP_CONNECTORS``
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-+--------------+--------------------------------------------------------------------------------+
-| **type**:    | ``tuple``                                                                      |
-+--------------+--------------------------------------------------------------------------------+
-| **default**: | .. code-block:: python                                                         |
-|              |                                                                                |
-|              |   (                                                                            |
-|              |     ('openwisp_controller.connection.connectors.ssh.Ssh', 'SSH'),              |
-|              |     ('openwisp_controller.connection.connectors.snmp.Snmp', 'SNMP'),           |
-|              |     ('openwisp_controller.connection.connectors.airos.snmp.Snmp', 'AiOS SNMP'),|
-|              |   )                                                                            |
-+--------------+--------------------------------------------------------------------------------+
++--------------+-------------------------------------------------------------------------------------------+
+| **type**:    | ``tuple``                                                                                 |
++--------------+-------------------------------------------------------------------------------------------+
+| **default**: | .. code-block:: python                                                                    |
+|              |                                                                                           |
+|              |   (                                                                                       |
+|              |     ('openwisp_controller.connection.connectors.ssh.Ssh', 'SSH'),                         |
+|              |     ('openwisp_controller.connection.connectors.snmp.Snmp', 'OpenWRT SNMP'),              |
+|              |     ('openwisp_controller.connection.connectors.airos.snmp.Snmp', 'Ubiquiti AirOS SNMP'), |
+|              |   )                                                                                       |
++--------------+-------------------------------------------------------------------------------------------+
 
 Available connector classes. Connectors are python classes that specify ways
 in which OpenWISP can connect to devices in order to launch commands.
