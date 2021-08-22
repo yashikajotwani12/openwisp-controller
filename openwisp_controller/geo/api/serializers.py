@@ -1,4 +1,7 @@
+import io
+
 from django.contrib.humanize.templatetags.humanize import ordinal
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import transaction
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -212,6 +215,24 @@ class DeviceLocationSerializer(serializers.ModelSerializer):
             'floorplan',
             'indoor',
         )
+
+    def to_internal_value(self, value):
+        if value.get('floorplan'):
+            if value.get('floorplan').get('image'):
+                if type(value.get('floorplan').get('image')) is str:
+                    _image = self.instance.floorplan.image
+                    io_image = io.BytesIO(_image.read())
+                    image = InMemoryUploadedFile(
+                        file=io_image,
+                        name=_image.name,
+                        field_name='floorplan.image',
+                        content_type='image/jpeg',
+                        size=_image.size,
+                        charset=None,
+                    )
+                    value['floorplan']['image'] = image
+        value = super().to_internal_value(value)
+        return value
 
     def update(self, instance, validated_data):
         if 'location' in validated_data:
