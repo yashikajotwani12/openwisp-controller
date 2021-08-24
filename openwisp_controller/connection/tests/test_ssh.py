@@ -36,9 +36,9 @@ class TestSsh(CreateConnectionsMixin, TestCase):
         self.assertTrue(dc.is_working)
         with mock.patch('logging.Logger.info') as mocked_logger:
             dc.connector_instance.exec_command('echo test')
-            mocked_logger.assert_has_calls(
-                [mock.call('Executing command: echo test'), mock.call('test\n')]
-            )
+        mocked_logger.assert_has_calls(
+            [mock.call('Executing command: echo test'), mock.call('test\n')]
+        )
 
     @mock.patch.object(ssh_logger, 'info')
     @mock.patch.object(ssh_logger, 'debug')
@@ -49,12 +49,29 @@ class TestSsh(CreateConnectionsMixin, TestCase):
         with self.assertRaises(Exception):
             with mock.patch('logging.Logger.error') as mocked_logger:
                 dc.connector_instance.exec_command('wrongcommand')
-                mocked_logger.assert_has_calls(
-                    [
-                        mock.call('/bin/sh: 1: wrongcommand: not found'),
-                        mock.call('Unexpected exit code: 127'),
-                    ]
+        mocked_logger.assert_has_calls(
+            [
+                mock.call('/bin/sh: 1: wrongcommand: not found\n'),
+                mock.call('Unexpected exit code: 127'),
+            ]
+        )
+
+    @mock.patch.object(ssh_logger, 'info')
+    @mock.patch.object(ssh_logger, 'debug')
+    def test_connection_failed_command_suppressed_output(
+        self, mocked_debug, mocked_info
+    ):
+        ckey = self._create_credentials_with_key(port=self.ssh_server.port)
+        dc = self._create_device_connection(credentials=ckey)
+        dc.connector_instance.connect()
+        with self.assertRaises(Exception) as ctx:
+            with mock.patch('logging.Logger.error') as mocked_logger:
+                dc.connector_instance.exec_command(
+                    'rm /thisfilesurelydoesnotexist 2> /dev/null'
                 )
+        log_message = 'Unexpected exit code: 1'
+        mocked_logger.assert_has_calls([mock.call(log_message)])
+        self.assertEqual(str(ctx.exception), log_message)
 
     @mock.patch('scp.SCPClient.putfo')
     def test_connection_upload(self, putfo_mocked):
