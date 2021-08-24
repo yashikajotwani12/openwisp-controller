@@ -1,5 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count
+from django.http import Http404
 from rest_framework import generics, pagination
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import BasePermission, IsAuthenticated
@@ -106,7 +107,11 @@ class DeviceLocationView(
         devicelocation = self.get_devicelocation(device)
         if devicelocation:
             return devicelocation
-        return self.create_devicelocation(device)
+        else:
+            if self.request.method in ('GET', 'PATCH', 'DELETE'):
+                raise Http404
+            if self.request.method == 'PUT':
+                return self.create_devicelocation(device)
 
     def create_devicelocation(self, device):
         location = Location(

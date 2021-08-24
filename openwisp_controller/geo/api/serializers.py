@@ -217,6 +217,13 @@ class DeviceLocationSerializer(serializers.ModelSerializer):
         )
 
     def to_internal_value(self, value):
+        if value.get('location.type') == 'outdoor' and not self.instance.floorplan:
+            value._mutable = True
+            value.pop('floorplan.floor')
+            value.pop('floorplan.image')
+            value.pop('indoor')
+            value._mutable = False
+
         if value.get('floorplan'):
             if value.get('floorplan').get('image'):
                 if type(value.get('floorplan').get('image')) is str:

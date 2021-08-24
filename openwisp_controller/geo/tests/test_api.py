@@ -79,25 +79,7 @@ class TestApi(AssertNumQueriesSubTestMixin, TestGeoMixin, TestCase):
         device = self._create_object()
         url = reverse(self.url_name, args=[device.pk])
         r = self.client.get(url, {'key': device.key})
-        self.assertEqual(r.status_code, 200)
-        self.assertDictEqual(
-            r.json(),
-            {
-                'location': {
-                    'type': 'Feature',
-                    'geometry': None,
-                    'properties': {
-                        'type': 'outdoor',
-                        'is_mobile': True,
-                        'name': 'test-remove-mobile',
-                        'address': '',
-                    },
-                },
-                'floorplan': None,
-                'indoor': '',
-            },
-        )
-        self.assertEqual(self.location_model.objects.count(), 1)
+        self.assertEqual(r.status_code, 404)
 
     def test_patch_update_coordinates(self):
         self.assertEqual(self.location_model.objects.count(), 0)
@@ -623,7 +605,11 @@ class TestGeoApi(
         self._create_org_user(user=staff_user, organization=org1, is_admin=True)
         self.client.force_login(staff_user)
         path = reverse('geo_api:device_location', args=(device.pk,))
-        with self.assertNumQueries(14):
+        l1 = self._create_location(
+            name='location1org', type='outdoor', organization=org1
+        )
+        self._create_device_location(content_object=device, location=l1)
+        with self.assertNumQueries(5):
             response = self.client.get(path)
         self.assertEqual(response.status_code, 200)
 
@@ -652,16 +638,24 @@ class TestGeoApi(
         self.client.force_login(staff_user)
         url = reverse('geo_api:device_location', args=(device2.pk,))
         path = '{0}?key={1}'.format(url, device2.key)
-        with self.assertNumQueries(12):
+        l1 = self._create_location(
+            name='location1org', type='outdoor', organization=org2
+        )
+        self._create_device_location(content_object=device2, location=l1)
+        with self.assertNumQueries(3):
             response = self.client.get(path)
         self.assertEqual(response.status_code, 200)
 
     def test_device_location_unauth_with_correct_key(self):
         device = self._create_device()
+        l1 = self._create_location(
+            name='location1org', type='outdoor', organization=device.organization
+        )
+        self._create_device_location(content_object=device, location=l1)
         url = reverse('geo_api:device_location', args=(device.pk,))
         path = '{0}?key={1}'.format(url, device.key)
         self.client.logout()
-        with self.assertNumQueries(10):
+        with self.assertNumQueries(1):
             response = self.client.get(path)
         self.assertEqual(response.status_code, 200)
 
@@ -737,3 +731,86 @@ class TestGeoApi(
         with self.assertNumQueries(14):
             response = self.client.put(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
+
+    def test_create_device_location_with_put_api(self):
+        org1 = self._create_org(name='org1')
+        staff_user = self._get_operator()
+        device_perm = Permission.objects.filter(codename__endswith='device')
+        staff_user.user_permissions.add(*device_perm)
+        self._create_org_user(user=staff_user, organization=org1, is_admin=True)
+        self.client.force_login(staff_user)
+        device = self._create_device(name='00:22:23:34:45:56', organization=org1)
+        path = reverse('geo_api:device_location', args=[device.pk])
+        data = {
+            'location': {
+                'type': 'Feature',
+                'geometry': {'type': 'Point', 'coordinates': [12.3456, 20.345]},
+                'properties': {
+                    'type': 'outdoor',
+                    'is_mobile': False,
+                    'name': 'GSoC21',
+                    'address': 'OpenWISP',
+                },
+            },
+        }
+        self.assertEqual(DeviceLocation.objects.count(), 0)
+        with self.assertNumQueries(16):
+            response = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(DeviceLocation.objects.count(), 1)
+
+    def test_create_device_location_with_floorplan_with_put_api(self):
+        org1 = self._create_org(name='org1')
+        staff_user = self._get_operator()
+        device_perm = Permission.objects.filter(codename__endswith='device')
+        staff_user.user_permissions.add(*device_perm)
+        self._create_org_user(user=staff_user, organization=org1, is_admin=True)
+        self.client.force_login(staff_user)
+        device = self._create_device(name='00:22:23:34:45:56', organization=org1)
+        path = reverse('geo_api:device_location', args=[device.pk])
+        coords = json.loads(Point(2, 23).geojson)
+        fl_image = self._get_in_memory_upload_file()
+        data = {
+            'location.type': 'indoor',
+            'location.name': 'GSoC21',
+            'location.address': 'OpenWISP',
+            'location.geometry': [coords],
+            'floorplan.floor': ['21'],
+            'indoor': ['12.342,23.541'],
+            'floorplan.image': [fl_image],
+        }
+        self.assertEqual(DeviceLocation.objects.count(), 0)
+        with self.assertNumQueries(19):
+            response = self.client.put(
+                path, encode_multipart(BOUNDARY, data), content_type=MULTIPART_CONTENT
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(DeviceLocation.objects.count(), 1)
+
+    def test_create_outdoor_device_location_with_floorplan_put_api(self):
+        org1 = self._create_org(name='org1')
+        staff_user = self._get_operator()
+        device_perm = Permission.objects.filter(codename__endswith='device')
+        staff_user.user_permissions.add(*device_perm)
+        self._create_org_user(user=staff_user, organization=org1, is_admin=True)
+        self.client.force_login(staff_user)
+        device = self._create_device(name='00:22:23:34:45:56', organization=org1)
+        path = reverse('geo_api:device_location', args=[device.pk])
+        coords = json.loads(Point(2, 23).geojson)
+        fl_image = self._get_in_memory_upload_file()
+        data = {
+            'location.type': 'outdoor',
+            'location.name': 'GSoC21',
+            'location.address': 'OpenWISP',
+            'location.geometry': [coords],
+            'floorplan.floor': ['21'],
+            'indoor': ['12.342,23.541'],
+            'floorplan.image': [fl_image],
+        }
+        self.assertEqual(DeviceLocation.objects.count(), 0)
+        with self.assertNumQueries(16):
+            response = self.client.put(
+                path, encode_multipart(BOUNDARY, data), content_type=MULTIPART_CONTENT
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(DeviceLocation.objects.count(), 1)
