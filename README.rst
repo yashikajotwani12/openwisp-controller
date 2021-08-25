@@ -882,8 +882,8 @@ Get device location
 
     GET /api/v1/controller/device/{id}/location/
 
-The device location endpoints can be accesseed in two ways:
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+The device location endpoints can be accessed in two ways:
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 * As all the other endpoints it can be accessed
   with token or session authentication, when this
@@ -911,15 +911,6 @@ Patch details of device location
 
 **Note**:- To access this endpoints, `see here <#the-device-location-endpoints-can-be-accesseed-in-two-ways>`_
 
-**Example Usage**: To change the coordinates of a device
-
-.. code-block:: shell
-
-    echo '{"location":{"geometry": ["Type": "Point","coordinates": [12.345, 67.89]]}}' | \
-    http PATCH http://127.0.0.1:8000/api/v1/controller/device/76b7d9cc-4ffd-4a43-b1b0-8f8befd1a7c0/ \
-    ?key=0e95a83c94c85aaf32ace159bfdb5d7b
-
-
 Delete device location
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -927,7 +918,10 @@ Delete device location
 
     DELETE /api/v1/controller/device/{id}/location/
 
-**Note**:- To access this endpoints, `see here <#the-device-location-endpoints-can-be-accesseed-in-two-ways>`_
+**Note**:- To access this endpoints, `see here <#the-device-location-endpoints-can-be-accesseed-in-two-ways>`_.
+Presently, with these endpoints it is not possible to
+assign an existing location or floorplan to a device,
+however, it allows us to update and delete.
 
 List of devices in a location
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
