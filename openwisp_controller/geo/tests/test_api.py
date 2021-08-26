@@ -598,7 +598,7 @@ class TestGeoApi(
 
     def test_device_location_auth_access_own_org_data_with_no_key(self):
         org1 = self._create_org(name='org1')
-        device = self._create_device(name='00:11:22:33:44:55', organization=org1)
+        device = self._create_device(name='00:12:23:34:45:56', organization=org1)
         staff_user = self._get_operator()
         device_perm = Permission.objects.filter(codename__endswith='device')
         staff_user.user_permissions.add(*device_perm)
